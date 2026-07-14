@@ -1,0 +1,25 @@
+import type { Pool } from "pg";
+import { createRepository } from "../db/repository";
+
+export type Busqueda = {
+  id: string;
+  contacto_id: string;
+  tipo_operacion: "Compra" | "Alquiler" | "Inversion";
+  presupuesto: number | null;
+  zona: string | null;
+  tipo_propiedad: "Departamento" | "Casa" | "Lote" | "Local/Oficina" | null;
+  dormitorios: number | null;
+  otros_requisitos: string | null;
+  activa: boolean;
+  created_at: string;
+};
+
+export function createBusquedasModule(pool: Pool) {
+  const repo = createRepository<Busqueda>(pool, "busquedas");
+  return {
+    ...repo,
+    async findByContactoId(contactoId: string): Promise<Busqueda[]> {
+      return repo.list({ contacto_id: contactoId } as Partial<Busqueda>);
+    },
+  };
+}
