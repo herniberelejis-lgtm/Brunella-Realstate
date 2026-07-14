@@ -206,9 +206,9 @@ describe("schema", () => {
     const names = tables.map((t: any) => t.table_name);
     expect(names).toEqual([
       "busquedas",
-      "conversaciones",
       "consultas",
       "contactos",
+      "conversaciones",
       "muestras",
       "ofertas",
       "propiedades",
@@ -249,7 +249,7 @@ Expected: FAIL — `supabase/migrations/0001_schema.sql` doesn't exist yet.
 `supabase/migrations/0001_schema.sql`:
 
 ```sql
-create extension if not exists pgcrypto;
+-- gen_random_uuid() is built into Postgres 13+ (no extension needed).
 
 create table contactos (
   id uuid primary key default gen_random_uuid(),
