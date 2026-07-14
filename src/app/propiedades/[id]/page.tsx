@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getDomainModules } from "@/lib/domain/factory";
+import { parseImagenes } from "@/lib/view/imagenes";
+import { PencilIcon } from "@/components/icons/PencilIcon";
+import { PhotoIcon } from "@/components/icons/PhotoIcon";
 import type { Consulta } from "@/lib/domain/consultas";
 import type { Muestra } from "@/lib/domain/muestras";
 import type { Oferta } from "@/lib/domain/ofertas";
@@ -26,15 +30,52 @@ export default async function PropiedadDetailPage({
       ofertas.findByPropiedadId(id),
     ]);
 
+  const fotos = parseImagenes(propiedad.imagenes);
+
   return (
     <main className="mx-auto max-w-2xl p-4">
-      <h1 className="text-xl font-semibold text-slate-900">{propiedad.direccion}</h1>
+      {fotos.length > 0 ? (
+        <div className="-mx-4 mb-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">
+          {fotos.map((url, index) => (
+            // eslint-disable-next-line @next/next/no-img-element -- arbitrary external hosts, next/image would need every domain whitelisted
+            <img
+              key={url + index}
+              src={url}
+              alt={`Foto ${index + 1} de ${propiedad.direccion}`}
+              loading="lazy"
+              className="h-48 w-64 shrink-0 snap-start rounded-xl object-cover"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="mb-4 flex h-32 items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 text-slate-400">
+          <PhotoIcon className="h-6 w-6" />
+          <span className="text-sm">Sin fotos cargadas</span>
+        </div>
+      )}
+
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-xl font-semibold text-slate-900">{propiedad.direccion}</h1>
+        <Link
+          href={`/propiedades/${id}/editar`}
+          aria-label="Editar propiedad"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600"
+        >
+          <PencilIcon className="h-5 w-5" />
+        </Link>
+      </div>
       <p className="mt-1 text-sm text-slate-600">
         {propiedad.tipo_propiedad} · ${propiedad.precio ?? "—"} · {propiedad.estado}
       </p>
+      {propiedad.descripcion && (
+        <p className="mt-2 whitespace-pre-line text-sm text-slate-600">{propiedad.descripcion}</p>
+      )}
       {propietario && (
         <p className="mt-2 text-sm text-slate-600">
-          Propietario: <span className="font-medium">{propietario.nombre}</span>
+          Propietario:{" "}
+          <Link href={`/contactos/${propietario.id}`} className="font-medium text-indigo-600 hover:underline">
+            {propietario.nombre}
+          </Link>
         </p>
       )}
 
