@@ -58,4 +58,21 @@ describe("telegram client", () => {
     expect(verifyWebhookSecret("wrong")).toBe(false);
     expect(verifyWebhookSecret(undefined)).toBe(false);
   });
+
+  it("throws when sendMessage fails", async () => {
+    (fetch as any).mockResolvedValue({ ok: false, status: 500 });
+    await expect(sendMessage(1, "hola")).rejects.toThrow(/Telegram sendMessage failed/);
+  });
+
+  it("throws when getFile fails", async () => {
+    (fetch as any).mockResolvedValue({ ok: false, status: 404 });
+    await expect(getFileDownloadUrl("bad-id")).rejects.toThrow(/Telegram getFile failed/);
+  });
+
+  it("throws when the file download fails", async () => {
+    (fetch as any).mockResolvedValue({ ok: false, status: 403 });
+    await expect(downloadFile("https://example.com/file.oga")).rejects.toThrow(
+      /File download failed/
+    );
+  });
 });

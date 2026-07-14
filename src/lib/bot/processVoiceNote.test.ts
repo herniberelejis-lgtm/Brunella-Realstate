@@ -168,4 +168,107 @@ describe("processVoiceNote", () => {
       expect.objectContaining({ contacto_id: "1", propiedad_id: "10", monto: 95000, estado: "Pendiente" })
     );
   });
+
+  it("asks the user to choose when the mentioned property is ambiguous", async () => {
+    const juan = { id: "1", nombre: "Juan Pérez" };
+    const departamentoUno = { id: "10", direccion: "Nueva Córdoba 500" };
+    const departamentoDos = { id: "11", direccion: "Nueva Córdoba 700" };
+    const deps = buildDeps({
+      extractStructuredData: vi.fn().mockResolvedValue({
+        contactoNombreMencionado: "Juan",
+        propiedadMencionada: "Nueva Córdoba",
+        tipoEvento: "muestra",
+        feedback: null,
+        montoOferta: null,
+        presupuestoMencionado: null,
+        proximoPaso: null,
+        confianza: "alta",
+      }),
+      contactos: { findByNombreLike: vi.fn().mockResolvedValue([juan]), marcarActividad: vi.fn() } as any,
+      propiedades: {
+        findByDireccionLike: vi.fn().mockResolvedValue([departamentoUno, departamentoDos]),
+      } as any,
+    });
+
+    const result = await processVoiceNote(deps, Buffer.from("audio"), "note.oga");
+
+    expect(result.respuesta).toContain("Nueva Córdoba 500");
+    expect(result.respuesta).toContain("Nueva Córdoba 700");
+    expect(deps.muestras.create).not.toHaveBeenCalled();
+  });
+
+  it("does not create a Consulta when no property was matched", async () => {
+    const juan = { id: "1", nombre: "Juan Pérez" };
+    const deps = buildDeps({
+      extractStructuredData: vi.fn().mockResolvedValue({
+        contactoNombreMencionado: "Juan",
+        propiedadMencionada: null,
+        tipoEvento: "consulta",
+        feedback: null,
+        montoOferta: null,
+        presupuestoMencionado: null,
+        proximoPaso: null,
+        confianza: "alta",
+      }),
+      contactos: { findByNombreLike: vi.fn().mockResolvedValue([juan]), marcarActividad: vi.fn() } as any,
+    });
+
+    const result = await processVoiceNote(deps, Buffer.from("audio"), "note.oga");
+
+    expect(deps.consultas.create).not.toHaveBeenCalled();
+    expect(result.respuesta).toContain("Juan Pérez");
+  });
+
+  it("creates a Consulta linked to the matched property", async () => {
+    const juan = { id: "1", nombre: "Juan Pérez" };
+    const depto = { id: "10", direccion: "Nueva Córdoba 500" };
+    const deps = buildDeps({
+      contactos: {
+        list: vi.fn().mockResolvedValue([juan]),
+        findByNombreLike: vi.fn().mockResolvedValue([juan]),
+        marcarActividad: vi.fn(),
+      } as any,
+      propiedades: {
+        list: vi.fn().mockResolvedValue([depto]),
+        findByDireccionLike: vi.fn().mockResolvedValue([depto]),
+      } as any,
+      extractStructuredData: vi.fn().mockResolvedValue({
+        contactoNombreMencionado: "Juan",
+        propiedadMencionada: "Nueva Córdoba",
+        tipoEvento: "consulta",
+        feedback: null,
+        montoOferta: null,
+        presupuestoMencionado: null,
+        proximoPaso: null,
+        confianza: "alta",
+      }),
+    });
+
+    await processVoiceNote(deps, Buffer.from("audio"), "note.oga");
+
+    expect(deps.consultas.create).toHaveBeenCalledWith(
+      expect.objectContaining({ propiedad_id: "10", contacto_id: "1" })
+    );
+  });
+
+  it("returns a not-found message when the mentioned contact matches nobody", async () => {
+    const deps = buildDeps({
+      extractStructuredData: vi.fn().mockResolvedValue({
+        contactoNombreMencionado: "Roberto",
+        propiedadMencionada: null,
+        tipoEvento: "conversacion",
+        feedback: null,
+        montoOferta: null,
+        presupuestoMencionado: null,
+        proximoPaso: null,
+        confianza: "alta",
+      }),
+      contactos: { findByNombreLike: vi.fn().mockResolvedValue([]) } as any,
+    });
+
+    const result = await processVoiceNote(deps, Buffer.from("audio"), "note.oga");
+
+    expect(result.respuesta).toMatch(/no encontré ningún contacto/i);
+    expect(deps.conversaciones.create).not.toHaveBeenCalled();
+  });
 });

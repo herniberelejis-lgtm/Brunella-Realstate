@@ -65,4 +65,12 @@ describe("groq client", () => {
     expect(result.contactoNombreMencionado).toBe("María");
     expect(result.confianza).toBe("alta");
   });
+
+  it("throws a descriptive error when extraction fails", async () => {
+    (fetch as any).mockResolvedValue({ ok: false, status: 500, text: async () => "boom" });
+
+    await expect(
+      extractStructuredData("transcript", { contactosConocidos: [], propiedadesConocidas: [] })
+    ).rejects.toThrow(/Groq extraction failed/);
+  });
 });

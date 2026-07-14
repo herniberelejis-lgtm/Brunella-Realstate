@@ -63,7 +63,7 @@ describe("evento domain modules", () => {
     expect(found[0].resumen).toBe("Preguntó por el depto");
   });
 
-  it("muestras: creates and finds by propiedad_id", async () => {
+  it("muestras: creates and finds by propiedad_id and by contacto_id", async () => {
     const contacto = await crearContacto(pool, "Comprador Tres");
     const propiedad = await crearPropiedad(pool, "Calle Uno 100");
     const muestras = createMuestrasModule(pool);
@@ -74,26 +74,31 @@ describe("evento domain modules", () => {
       feedback: "Le gustó",
       interes_resultante: "Le interesó",
     } as any);
-    const found = await muestras.findByPropiedadId(propiedad.id);
-    expect(found).toHaveLength(1);
-    expect(found[0].interes_resultante).toBe("Le interesó");
+    const porPropiedad = await muestras.findByPropiedadId(propiedad.id);
+    expect(porPropiedad).toHaveLength(1);
+    expect(porPropiedad[0].interes_resultante).toBe("Le interesó");
+    const porContacto = await muestras.findByContactoId(contacto.id);
+    expect(porContacto).toHaveLength(1);
   });
 
-  it("consultas: creates and finds by propiedad_id", async () => {
+  it("consultas: creates and finds by propiedad_id and by contacto_id", async () => {
+    const contacto = await crearContacto(pool, "Comprador Consulta");
     const propiedad = await crearPropiedad(pool, "Calle Dos 200");
     const consultas = createConsultasModule(pool);
     await consultas.create({
       propiedad_id: propiedad.id,
-      contacto_id: null,
+      contacto_id: contacto.id,
       canal: "Instagram",
       origen: "nota_de_voz",
     } as any);
-    const found = await consultas.findByPropiedadId(propiedad.id);
-    expect(found).toHaveLength(1);
-    expect(found[0].canal).toBe("Instagram");
+    const porPropiedad = await consultas.findByPropiedadId(propiedad.id);
+    expect(porPropiedad).toHaveLength(1);
+    expect(porPropiedad[0].canal).toBe("Instagram");
+    const porContacto = await consultas.findByContactoId(contacto.id);
+    expect(porContacto).toHaveLength(1);
   });
 
-  it("ofertas: creates and finds by contacto_id", async () => {
+  it("ofertas: creates and finds by contacto_id and by propiedad_id", async () => {
     const contacto = await crearContacto(pool, "Comprador Cuatro");
     const propiedad = await crearPropiedad(pool, "Calle Tres 300");
     const ofertas = createOfertasModule(pool);
@@ -104,8 +109,10 @@ describe("evento domain modules", () => {
       estado: "Pendiente",
       origen: "nota_de_voz",
     } as any);
-    const found = await ofertas.findByContactoId(contacto.id);
-    expect(found).toHaveLength(1);
-    expect(found[0].monto).toBe(95000);
+    const porContacto = await ofertas.findByContactoId(contacto.id);
+    expect(porContacto).toHaveLength(1);
+    expect(porContacto[0].monto).toBe(95000);
+    const porPropiedad = await ofertas.findByPropiedadId(propiedad.id);
+    expect(porPropiedad).toHaveLength(1);
   });
 });
