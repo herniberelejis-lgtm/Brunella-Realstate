@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getDomainModules } from "@/lib/domain/factory";
 import { StageBadge } from "@/components/StageBadge";
 import { TemperatureBadge } from "@/components/TemperatureBadge";
+import { PencilIcon } from "@/components/icons/PencilIcon";
 import type { Busqueda } from "@/lib/domain/busquedas";
 import type { Propiedad } from "@/lib/domain/propiedades";
 import type { Conversacion } from "@/lib/domain/conversaciones";
@@ -49,7 +51,16 @@ export default async function ContactoDetailPage({
 
   return (
     <main className="mx-auto max-w-2xl p-4">
-      <h1 className="text-xl font-semibold text-slate-900">{contacto.nombre}</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-xl font-semibold text-slate-900">{contacto.nombre}</h1>
+        <Link
+          href={`/contactos/${id}/editar`}
+          aria-label="Editar contacto"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600"
+        >
+          <PencilIcon className="h-5 w-5" />
+        </Link>
+      </div>
       <div className="mt-2 flex gap-2">
         <StageBadge etapa={contacto.etapa} />
         <TemperatureBadge temperatura={contacto.temperatura} />
@@ -78,9 +89,13 @@ export default async function ContactoDetailPage({
         <section className="mt-6">
           <h2 className="text-sm font-semibold text-slate-700">Propiedades en cartera</h2>
           {propiedadesEnCartera.map((p: Propiedad) => (
-            <p key={p.id} className="mt-1 text-sm text-slate-600">
+            <Link
+              key={p.id}
+              href={`/propiedades/${p.id}`}
+              className="mt-1 block text-sm text-indigo-600 hover:underline"
+            >
               {p.direccion} · ${p.precio} · {p.estado}
-            </p>
+            </Link>
           ))}
         </section>
       )}
