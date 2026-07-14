@@ -11,11 +11,12 @@ function loadTestDb() {
     impure: true, // must generate a fresh value per row, not be cached/simplified
     implementation: () => crypto.randomUUID(),
   });
-  const sql = fs.readFileSync(
-    path.join(__dirname, "../../../supabase/migrations/0001_schema.sql"),
-    "utf-8"
-  );
-  db.public.none(sql);
+  const migrationsDir = path.join(__dirname, "../../../supabase/migrations");
+  const migrationFiles = fs.readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort();
+  for (const file of migrationFiles) {
+    const sql = fs.readFileSync(path.join(migrationsDir, file), "utf-8");
+    db.public.none(sql);
+  }
   return db;
 }
 
@@ -62,5 +63,16 @@ describe("schema", () => {
     expect(rows[0].contacto_propietario_id).toBe(
       "11111111-1111-1111-1111-111111111111"
     );
+  });
+
+  it("stores newline-separated image links on propiedades (0002 migration)", () => {
+    db.public.none(
+      "insert into propiedades (direccion, tipo_propiedad, precio, imagenes) values ('Calle Foto 1', 'Casa', 1000, 'https://a.com/1.jpg\nhttps://a.com/2.jpg')"
+    );
+    const [row] = db.public.many(
+      "select imagenes from propiedades where direccion = 'Calle Foto 1'"
+    );
+    expect(row.imagenes).toContain("https://a.com/1.jpg");
+    expect(row.imagenes).toContain("https://a.com/2.jpg");
   });
 });

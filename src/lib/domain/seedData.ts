@@ -45,6 +45,8 @@ export const PROPIEDADES_SEED: Propiedad[] = [
     estado: "Activa",
     consultas_historicas: 6,
     visitas_historicas: 2,
+    imagenes:
+      "https://images.unsplash.com/photo-1560184897-ae75f418493e?w=800\nhttps://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800",
     created_at: now,
   },
 ];

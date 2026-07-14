@@ -14,6 +14,7 @@ export type Propiedad = {
   estado: "Activa" | "Vendida" | "Retirada";
   consultas_historicas: number;
   visitas_historicas: number;
+  imagenes: string | null;
   created_at: string;
 };
 
