@@ -2716,10 +2716,15 @@ git commit -m "feat: add repository factory with seeded in-memory fallback for l
 - Create: `src/app/contactos/[id]/page.tsx`
 
 **Interfaces:**
-- Consumes: `getDomainModules` (Task 12).
+- Consumes: `getDomainModules` (Task 12), `normalizeText` (Task 4).
 - Produces: `filterContactos(contactos, filters)`, `needsFollowUp(contacto, diasSinActividad)` —
-  pure, tested logic used by the (untested-by-Vitest, manually browser-verified in Task 18)
+  pure, tested logic used by the (untested-by-Vitest, manually browser-verified in Task 20)
   page components.
+- **Correction found during the coverage pass (Task 18):** the spec requires filtering the
+  contact list by zona too, but zona lives on `Busqueda`, not `Contacto` — `filterContactos`
+  can't apply it alone. Added `filterContactoIdsByZona(busquedas, zona)`, which returns the set
+  of `contacto_id`s with a matching búsqueda (or `null` when no zona filter is active), and
+  wired it into `/contactos/page.tsx` alongside `filterContactos`.
 
 - [ ] **Step 1: Write the failing filter logic test**
 

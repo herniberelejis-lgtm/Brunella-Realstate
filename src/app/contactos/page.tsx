@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { getDomainModules } from "@/lib/domain/factory";
-import { filterContactos, needsFollowUp, type ContactoFilters } from "@/lib/view/contactFilters";
+import {
+  filterContactos,
+  filterContactoIdsByZona,
+  needsFollowUp,
+  type ContactoFilters,
+} from "@/lib/view/contactFilters";
 import { StageBadge } from "@/components/StageBadge";
 import { TemperatureBadge } from "@/components/TemperatureBadge";
 
@@ -9,12 +14,15 @@ const DIAS_SIN_ACTIVIDAD = 5;
 export default async function ContactosPage({
   searchParams,
 }: {
-  searchParams: Promise<ContactoFilters>;
+  searchParams: Promise<ContactoFilters & { zona?: string }>;
 }) {
-  const filters = await searchParams;
-  const { contactos } = getDomainModules();
-  const todos = await contactos.list();
-  const filtrados = filterContactos(todos, filters);
+  const { zona, ...filters } = await searchParams;
+  const { contactos, busquedas } = getDomainModules();
+  const [todos, todasLasBusquedas] = await Promise.all([contactos.list(), busquedas.list()]);
+  const idsConZona = filterContactoIdsByZona(todasLasBusquedas, zona);
+  const filtrados = filterContactos(todos, filters).filter(
+    (contacto) => idsConZona === null || idsConZona.has(contacto.id)
+  );
   const ordenados = [...filtrados].sort((a, b) => {
     const aNecesita = needsFollowUp(a, DIAS_SIN_ACTIVIDAD);
     const bNecesita = needsFollowUp(b, DIAS_SIN_ACTIVIDAD);

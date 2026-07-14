@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { filterContactos, needsFollowUp } from "./contactFilters";
+import { filterContactos, needsFollowUp, filterContactoIdsByZona } from "./contactFilters";
 import type { Contacto } from "../domain/contactos";
+import type { Busqueda } from "../domain/busquedas";
 
 function contacto(overrides: Partial<Contacto>): Contacto {
   return {
@@ -14,6 +15,22 @@ function contacto(overrides: Partial<Contacto>): Contacto {
     etapa: "Nuevo",
     temperatura: "Tibio",
     ultima_actividad: new Date().toISOString(),
+    created_at: "2026-01-01",
+    ...overrides,
+  };
+}
+
+function busqueda(overrides: Partial<Busqueda>): Busqueda {
+  return {
+    id: "b1",
+    contacto_id: "1",
+    tipo_operacion: "Compra",
+    presupuesto: null,
+    zona: null,
+    tipo_propiedad: null,
+    dormitorios: null,
+    otros_requisitos: null,
+    activa: true,
     created_at: "2026-01-01",
     ...overrides,
   };
@@ -48,5 +65,20 @@ describe("needsFollowUp", () => {
 
   it("is false for a fresh contact", () => {
     expect(needsFollowUp(contacto({ etapa: "Buscando" }), 5)).toBe(false);
+  });
+});
+
+describe("filterContactoIdsByZona", () => {
+  it("returns contacto_ids whose búsqueda zona matches, accent-insensitive", () => {
+    const busquedas = [
+      busqueda({ contacto_id: "1", zona: "Nueva Córdoba" }),
+      busqueda({ contacto_id: "2", zona: "Cerro de las Rosas" }),
+    ];
+    expect(filterContactoIdsByZona(busquedas, "cordoba")).toEqual(new Set(["1"]));
+  });
+
+  it("returns null (no filter) when zona is empty", () => {
+    const busquedas = [busqueda({ contacto_id: "1", zona: "Nueva Córdoba" })];
+    expect(filterContactoIdsByZona(busquedas, "")).toBeNull();
   });
 });
