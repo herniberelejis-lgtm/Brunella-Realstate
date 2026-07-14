@@ -81,7 +81,14 @@ export async function POST(request: NextRequest) {
     await sendMessage(chatId, respuesta);
   } catch (error) {
     console.error("Failed to process voice note", error);
-    await sendMessage(chatId, "No pude procesar esa nota de voz. Probá de nuevo en un rato.");
+    // TEMP debug aid: surface the real error in the chat itself while we diagnose a
+    // production failure, since digging through Vercel's log UI has been slow going.
+    // Safe because only the admin chat_id reaches this branch. Revert once diagnosed.
+    const detail = error instanceof Error ? error.message : String(error);
+    await sendMessage(
+      chatId,
+      `No pude procesar esa nota de voz. Probá de nuevo en un rato.\n\n(debug: ${detail})`
+    );
   }
 
   return NextResponse.json({ ok: true });
