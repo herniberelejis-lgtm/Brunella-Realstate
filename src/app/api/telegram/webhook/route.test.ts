@@ -86,7 +86,7 @@ describe("POST /api/telegram/webhook", () => {
     expect(processVoiceNote).not.toHaveBeenCalled();
   });
 
-  it("replies with an error message (including the real error, temporarily, for debugging) instead of throwing when processing fails", async () => {
+  it("replies with an error message instead of throwing when processing fails", async () => {
     vi.mocked(processVoiceNote).mockRejectedValueOnce(new Error("Groq is down"));
 
     const response = await POST(
@@ -97,10 +97,7 @@ describe("POST /api/telegram/webhook", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(sendMessage).toHaveBeenCalledWith(
-      1,
-      expect.stringMatching(/no pude procesar[\s\S]*Groq is down/i)
-    );
+    expect(sendMessage).toHaveBeenCalledWith(1, expect.stringMatching(/no pude procesar/i));
   });
 
   it("ignores malformed update bodies instead of throwing", async () => {
