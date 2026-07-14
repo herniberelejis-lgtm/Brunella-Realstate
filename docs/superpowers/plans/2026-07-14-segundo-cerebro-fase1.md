@@ -1584,6 +1584,8 @@ git commit -m "feat: add Telegram Bot API client"
 - Test: `src/lib/bot/matching.test.ts`
 
 **Interfaces:**
+- Consumes: `normalizeText` (Task 4, `src/lib/text/normalize.ts`) — reused here rather than
+  duplicated, since it's the same accent/case-insensitive comparison need.
 - Produces: `matchContacto(nombreMencionado, candidatos): MatchResult<Contacto>` and
   `matchPropiedad(direccionMencionada, candidatos): MatchResult<Propiedad>`, where
   `MatchResult<T> = { type: "unico"; item: T } | { type: "ambiguo"; candidatos: T[] } | { type: "sin_match" }`.
@@ -1693,18 +1695,12 @@ Expected: FAIL — `./matching` doesn't exist yet.
 ```typescript
 import type { Contacto } from "../domain/contactos";
 import type { Propiedad } from "../domain/propiedades";
+import { normalizeText } from "../text/normalize";
 
 export type MatchResult<T> =
   | { type: "unico"; item: T }
   | { type: "ambiguo"; candidatos: T[] }
   | { type: "sin_match" };
-
-function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "");
-}
 
 function matchByField<T>(
   mencion: string | null,
@@ -1712,9 +1708,9 @@ function matchByField<T>(
   getField: (item: T) => string
 ): MatchResult<T> {
   if (!mencion) return { type: "sin_match" };
-  const normalizedMencion = normalize(mencion);
+  const normalizedMencion = normalizeText(mencion);
   const matches = candidatos.filter((item) =>
-    normalize(getField(item)).includes(normalizedMencion)
+    normalizeText(getField(item)).includes(normalizedMencion)
   );
   if (matches.length === 0) return { type: "sin_match" };
   if (matches.length === 1) return { type: "unico", item: matches[0] };
