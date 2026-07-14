@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
 
 function requireApiKey(): string {
@@ -32,15 +34,28 @@ export type MatchContext = {
   propiedadesConocidas: { id: string; direccion: string }[];
 };
 
-export type ExtractedNote = {
-  contactoNombreMencionado: string | null;
-  propiedadMencionada: string | null;
-  tipoEvento: "conversacion" | "consulta" | "muestra" | "oferta";
-  feedback: string | null;
-  montoOferta: number | null;
-  presupuestoMencionado: number | null;
-  proximoPaso: string | null;
-  confianza: "alta" | "media" | "baja";
+const extractedNoteSchema = z.object({
+  contactoNombreMencionado: z.string().nullable(),
+  propiedadMencionada: z.string().nullable(),
+  tipoEvento: z.enum(["conversacion", "consulta", "muestra", "oferta"]),
+  feedback: z.string().nullable(),
+  montoOferta: z.number().nullable(),
+  presupuestoMencionado: z.number().nullable(),
+  proximoPaso: z.string().nullable(),
+  confianza: z.enum(["alta", "media", "baja"]),
+});
+
+export type ExtractedNote = z.infer<typeof extractedNoteSchema>;
+
+const BAJA_CONFIANZA_POR_FORMATO_INESPERADO: ExtractedNote = {
+  contactoNombreMencionado: null,
+  propiedadMencionada: null,
+  tipoEvento: "conversacion",
+  feedback: null,
+  montoOferta: null,
+  presupuestoMencionado: null,
+  proximoPaso: null,
+  confianza: "baja",
 };
 
 const EXTRACTION_SYSTEM_PROMPT = `Sos un asistente que estructura notas de voz de una asesora
@@ -84,5 +99,19 @@ export async function extractStructuredData(
   }
 
   const data = await response.json();
-  return JSON.parse(data.choices[0].message.content) as ExtractedNote;
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(data.choices[0].message.content);
+  } catch {
+    return BAJA_CONFIANZA_POR_FORMATO_INESPERADO;
+  }
+
+  const result = extractedNoteSchema.safeParse(parsedJson);
+  if (!result.success) {
+    // The LLM occasionally returns a shape that doesn't match the schema (wrong type,
+    // invalid enum value). Treat it as low confidence rather than trusting malformed data —
+    // the caller already knows how to ask for clarification on "baja".
+    return BAJA_CONFIANZA_POR_FORMATO_INESPERADO;
+  }
+  return result.data;
 }

@@ -82,6 +82,19 @@ export async function processVoiceNote(
 
   const propiedadId = propiedadMatch.type === "unico" ? propiedadMatch.item.id : null;
 
+  if (extracted.tipoEvento === "consulta" && !propiedadId) {
+    return {
+      respuesta:
+        "Entendí que era una consulta, pero no identifiqué sobre qué propiedad — no registré nada. Contame la dirección o referencia de la propiedad.",
+    };
+  }
+  if (extracted.tipoEvento === "oferta" && (!propiedadId || !extracted.montoOferta)) {
+    return {
+      respuesta:
+        "Entendí que era una oferta, pero me falta la propiedad o el monto — no registré nada. Repetime esos datos.",
+    };
+  }
+
   switch (extracted.tipoEvento) {
     case "muestra":
       await deps.muestras.create({
@@ -90,28 +103,24 @@ export async function processVoiceNote(
         propiedad_mostrada_texto: propiedadId ? null : extracted.propiedadMencionada,
         feedback: extracted.feedback,
         interes_resultante: null,
-      } as any);
+      });
       break;
     case "consulta":
-      if (propiedadId) {
-        await deps.consultas.create({
-          propiedad_id: propiedadId,
-          contacto_id: contacto.id,
-          canal: "Otro",
-          origen: "nota_de_voz",
-        } as any);
-      }
+      await deps.consultas.create({
+        propiedad_id: propiedadId!,
+        contacto_id: contacto.id,
+        canal: "Otro",
+        origen: "nota_de_voz",
+      });
       break;
     case "oferta":
-      if (propiedadId && extracted.montoOferta) {
-        await deps.ofertas.create({
-          propiedad_id: propiedadId,
-          contacto_id: contacto.id,
-          monto: extracted.montoOferta,
-          estado: "Pendiente",
-          origen: "nota_de_voz",
-        } as any);
-      }
+      await deps.ofertas.create({
+        propiedad_id: propiedadId!,
+        contacto_id: contacto.id,
+        monto: extracted.montoOferta!,
+        estado: "Pendiente",
+        origen: "nota_de_voz",
+      });
       break;
     default:
       await deps.conversaciones.create({
@@ -120,7 +129,7 @@ export async function processVoiceNote(
         resumen: extracted.feedback ?? transcript,
         proximo_paso: extracted.proximoPaso,
         origen: "nota_de_voz",
-      } as any);
+      });
   }
 
   await deps.contactos.marcarActividad(contacto.id);

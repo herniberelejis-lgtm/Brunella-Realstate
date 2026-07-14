@@ -73,4 +73,36 @@ describe("groq client", () => {
       extractStructuredData("transcript", { contactosConocidos: [], propiedadesConocidas: [] })
     ).rejects.toThrow(/Groq extraction failed/);
   });
+
+  it("falls back to baja confianza when the LLM returns a shape that doesn't match the schema", async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              // montoOferta as a string and an invalid tipoEvento — malformed LLM output
+              content: JSON.stringify({
+                contactoNombreMencionado: "María",
+                propiedadMencionada: null,
+                tipoEvento: "algo_invalido",
+                feedback: null,
+                montoOferta: "noventa mil",
+                presupuestoMencionado: null,
+                proximoPaso: null,
+                confianza: "alta",
+              }),
+            },
+          },
+        ],
+      }),
+    });
+
+    const result = await extractStructuredData("transcript", {
+      contactosConocidos: [],
+      propiedadesConocidas: [],
+    });
+
+    expect(result.confianza).toBe("baja");
+  });
 });

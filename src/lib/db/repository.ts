@@ -3,7 +3,10 @@ import type { Pool } from "pg";
 export type Repository<T extends { id: string }> = {
   list(where?: Partial<T>): Promise<T[]>;
   findById(id: string): Promise<T | null>;
-  create(data: Omit<T, "id">): Promise<T>;
+  // Partial (not Omit<T, "id">) because most tables have DB-defaulted columns
+  // (fecha, created_at, etapa, ...) that callers legitimately omit. Still catches typo'd
+  // field names at compile time, unlike the `any` casts this replaced at every call site.
+  create(data: Partial<Omit<T, "id">>): Promise<T>;
   update(id: string, patch: Partial<Omit<T, "id">>): Promise<T | null>;
 };
 

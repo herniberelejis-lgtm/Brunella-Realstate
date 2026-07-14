@@ -197,7 +197,7 @@ describe("processVoiceNote", () => {
     expect(deps.muestras.create).not.toHaveBeenCalled();
   });
 
-  it("does not create a Consulta when no property was matched", async () => {
+  it("does not create a Consulta, and does NOT claim success, when no property was matched", async () => {
     const juan = { id: "1", nombre: "Juan Pérez" };
     const deps = buildDeps({
       extractStructuredData: vi.fn().mockResolvedValue({
@@ -216,7 +216,34 @@ describe("processVoiceNote", () => {
     const result = await processVoiceNote(deps, Buffer.from("audio"), "note.oga");
 
     expect(deps.consultas.create).not.toHaveBeenCalled();
-    expect(result.respuesta).toContain("Juan Pérez");
+    expect(deps.contactos.marcarActividad).not.toHaveBeenCalled();
+    expect(result.respuesta).not.toContain("✅ Guardé");
+    expect(result.respuesta).toMatch(/no registré nada/i);
+  });
+
+  it("does not create an Oferta, and does NOT claim success, when montoOferta is missing", async () => {
+    const juan = { id: "1", nombre: "Juan Pérez" };
+    const depto = { id: "10", direccion: "Nueva Córdoba 500" };
+    const deps = buildDeps({
+      extractStructuredData: vi.fn().mockResolvedValue({
+        contactoNombreMencionado: "Juan",
+        propiedadMencionada: "Nueva Córdoba",
+        tipoEvento: "oferta",
+        feedback: null,
+        montoOferta: null,
+        presupuestoMencionado: null,
+        proximoPaso: null,
+        confianza: "alta",
+      }),
+      contactos: { findByNombreLike: vi.fn().mockResolvedValue([juan]), marcarActividad: vi.fn() } as any,
+      propiedades: { findByDireccionLike: vi.fn().mockResolvedValue([depto]) } as any,
+    });
+
+    const result = await processVoiceNote(deps, Buffer.from("audio"), "note.oga");
+
+    expect(deps.ofertas.create).not.toHaveBeenCalled();
+    expect(result.respuesta).not.toContain("✅ Guardé");
+    expect(result.respuesta).toMatch(/no registré nada/i);
   });
 
   it("creates a Consulta linked to the matched property", async () => {
