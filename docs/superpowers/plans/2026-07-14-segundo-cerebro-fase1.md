@@ -1768,7 +1768,7 @@ import { describe, it, expect, vi } from "vitest";
 import { processVoiceNote, type ProcessVoiceNoteDeps } from "./processVoiceNote";
 
 function buildDeps(overrides: Partial<ProcessVoiceNoteDeps> = {}): ProcessVoiceNoteDeps {
-  return {
+  const defaults: ProcessVoiceNoteDeps = {
     transcribeAudio: vi.fn().mockResolvedValue("transcripción por defecto"),
     extractStructuredData: vi.fn().mockResolvedValue({
       contactoNombreMencionado: null,
@@ -1794,7 +1794,14 @@ function buildDeps(overrides: Partial<ProcessVoiceNoteDeps> = {}): ProcessVoiceN
     muestras: { create: vi.fn().mockResolvedValue({}) } as any,
     consultas: { create: vi.fn().mockResolvedValue({}) } as any,
     ofertas: { create: vi.fn().mockResolvedValue({}) } as any,
+  };
+  // Merge nested deps objects (not just top-level) so a test overriding e.g.
+  // `contactos.findByNombreLike` doesn't silently drop the default `contactos.list` mock.
+  return {
+    ...defaults,
     ...overrides,
+    contactos: { ...defaults.contactos, ...(overrides.contactos as object) } as any,
+    propiedades: { ...defaults.propiedades, ...(overrides.propiedades as object) } as any,
   };
 }
 
