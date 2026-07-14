@@ -8,6 +8,7 @@ function loadTestDb() {
   db.public.registerFunction({
     name: "gen_random_uuid",
     returns: "uuid" as any,
+    impure: true, // must generate a fresh value per row, not be cached/simplified
     implementation: () => crypto.randomUUID(),
   });
   const sql = fs.readFileSync(
