@@ -3335,11 +3335,18 @@ git commit -m "feat: gate the dashboard behind HTTP Basic Auth via proxy.ts"
   that inserts rows into `propiedades` with historical baselines. Column names are provisional
   (`fecha`, `tipo`, `descripcion`, `precio`, `consultas`, `visitas`) — **must be confirmed
   against Brunella's real file before running for real** (flagged in Task 17's README).
+- **Library choice, confirmed while implementing:** the obvious `xlsx` (SheetJS) package on npm
+  carries two unpatched high-severity advisories (prototype pollution, ReDoS —
+  `npm audit` flags them with "No fix available"). Use `exceljs` instead: actively maintained,
+  no equivalent advisory, similar capability. `parsePropiedadesFromExcel` is therefore `async`
+  (`exceljs`'s `workbook.xlsx.readFile` is Promise-based), unlike a `sheet_to_json`-style
+  synchronous read.
 
-- [ ] **Step 1: Add the `xlsx` dependency**
+- [ ] **Step 1: Add the `exceljs` and `tsx` dependencies**
 
 ```bash
-npm install xlsx
+npm install exceljs
+npm install -D tsx
 ```
 
 - [ ] **Step 2: Write the failing test with a generated fixture workbook**
@@ -3348,41 +3355,47 @@ npm install xlsx
 
 ```typescript
 import { describe, it, expect, beforeAll } from "vitest";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import path from "node:path";
 import fs from "node:fs";
 import { parsePropiedadesFromExcel } from "./import-excel";
 
 const FIXTURE_PATH = path.join(__dirname, "fixtures", "propiedades-ejemplo.xlsx");
 
-beforeAll(() => {
+beforeAll(async () => {
   fs.mkdirSync(path.dirname(FIXTURE_PATH), { recursive: true });
-  const worksheet = XLSX.utils.json_to_sheet([
-    {
-      fecha: "2026-01-15",
-      tipo: "Departamento",
-      descripcion: "2 dormitorios, luminoso",
-      precio: 95000,
-      consultas: 4,
-      visitas: 1,
-    },
-    {
-      fecha: "2026-02-01",
-      tipo: "Casa",
-      descripcion: "Con patio",
-      precio: 150000,
-      consultas: 2,
-      visitas: 0,
-    },
-  ]);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Propiedades");
-  XLSX.writeFile(workbook, FIXTURE_PATH);
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Propiedades");
+  worksheet.columns = [
+    { header: "fecha", key: "fecha" },
+    { header: "tipo", key: "tipo" },
+    { header: "descripcion", key: "descripcion" },
+    { header: "precio", key: "precio" },
+    { header: "consultas", key: "consultas" },
+    { header: "visitas", key: "visitas" },
+  ];
+  worksheet.addRow({
+    fecha: "2026-01-15",
+    tipo: "Departamento",
+    descripcion: "2 dormitorios, luminoso",
+    precio: 95000,
+    consultas: 4,
+    visitas: 1,
+  });
+  worksheet.addRow({
+    fecha: "2026-02-01",
+    tipo: "Casa",
+    descripcion: "Con patio",
+    precio: 150000,
+    consultas: 2,
+    visitas: 0,
+  });
+  await workbook.xlsx.writeFile(FIXTURE_PATH);
 });
 
 describe("parsePropiedadesFromExcel", () => {
-  it("parses each row into a Propiedad-shaped insert payload", () => {
-    const rows = parsePropiedadesFromExcel(FIXTURE_PATH);
+  it("parses each row into a Propiedad-shaped insert payload", async () => {
+    const rows = await parsePropiedadesFromExcel(FIXTURE_PATH);
 
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
@@ -3398,6 +3411,10 @@ describe("parsePropiedadesFromExcel", () => {
 });
 ```
 
+Note: this test file lives at `scripts/import-excel.test.ts`, outside `src/`, so
+`vitest.config.ts`'s `test.include` (Task 1) must list `scripts/**/*.test.ts` alongside the
+`src/**` patterns — done already in Task 1 for this reason.
+
 - [ ] **Step 3: Run test to verify it fails**
 
 Run: `npm test -- import-excel`
@@ -3408,18 +3425,8 @@ Expected: FAIL — `./import-excel` doesn't exist yet.
 `scripts/import-excel.ts`:
 
 ```typescript
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { Pool } from "pg";
-
-type FilaExcel = {
-  fecha?: string;
-  direccion?: string;
-  tipo?: string;
-  descripcion?: string;
-  precio?: number;
-  consultas?: number;
-  visitas?: number;
-};
 
 export type PropiedadInsert = {
   direccion: string;
@@ -3434,27 +3441,51 @@ export type PropiedadInsert = {
 
 const TIPOS_VALIDOS = ["Departamento", "Casa", "Lote", "Local/Oficina"];
 
-export function parsePropiedadesFromExcel(
+export async function parsePropiedadesFromExcel(
   filePath: string,
   contactoPropietarioId: string | null = null
-): PropiedadInsert[] {
-  const workbook = XLSX.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const rows = XLSX.utils.sheet_to_json<FilaExcel>(workbook.Sheets[sheetName]);
+): Promise<PropiedadInsert[]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const worksheet = workbook.worksheets[0];
 
-  return rows.map((row, index) => {
-    const tipo = TIPOS_VALIDOS.includes(row.tipo ?? "") ? (row.tipo as string) : "Departamento";
-    return {
-      direccion: row.direccion ?? `Propiedad importada #${index + 1} (confirmar dirección real)`,
-      tipo_propiedad: tipo,
-      descripcion: row.descripcion ?? null,
-      precio: row.precio ?? null,
-      fecha_recibida: row.fecha ?? new Date().toISOString().slice(0, 10),
-      consultas_historicas: row.consultas ?? 0,
-      visitas_historicas: row.visitas ?? 0,
-      contacto_propietario_id: contactoPropietarioId,
-    };
+  const headers: string[] = [];
+  worksheet.getRow(1).eachCell((cell, colNumber) => {
+    headers[colNumber] = String(cell.value ?? "").trim();
   });
+
+  const propiedades: PropiedadInsert[] = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+
+    const record: Record<string, unknown> = {};
+    row.eachCell((cell, colNumber) => {
+      const key = headers[colNumber];
+      if (key) record[key] = cell.value;
+    });
+
+    const tipo = TIPOS_VALIDOS.includes(String(record.tipo ?? ""))
+      ? String(record.tipo)
+      : "Departamento";
+
+    propiedades.push({
+      direccion:
+        typeof record.direccion === "string" && record.direccion.length > 0
+          ? record.direccion
+          : `Propiedad importada #${rowNumber - 1} (confirmar dirección real)`,
+      tipo_propiedad: tipo,
+      descripcion: (record.descripcion as string) ?? null,
+      precio: (record.precio as number) ?? null,
+      fecha_recibida: record.fecha
+        ? String(record.fecha).slice(0, 10)
+        : new Date().toISOString().slice(0, 10),
+      consultas_historicas: Number(record.consultas ?? 0),
+      visitas_historicas: Number(record.visitas ?? 0),
+      contacto_propietario_id: contactoPropietarioId,
+    });
+  });
+
+  return propiedades;
 }
 
 async function main() {
@@ -3464,7 +3495,7 @@ async function main() {
     process.exit(1);
   }
 
-  const propiedades = parsePropiedadesFromExcel(filePath, contactoPropietarioId ?? null);
+  const propiedades = await parsePropiedadesFromExcel(filePath, contactoPropietarioId ?? null);
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
   for (const propiedad of propiedades) {
@@ -3502,25 +3533,31 @@ Add to `package.json` `"scripts"`:
 "import:excel": "tsx scripts/import-excel.ts"
 ```
 
-```bash
-npm install -D tsx
-```
-
 - [ ] **Step 6: Run test to verify it passes**
 
 Run: `npm test -- import-excel`
 Expected: PASS (1 test).
 
-- [ ] **Step 7: Add the fixture directory to `.gitignore`-exempt tracked test assets**
+- [ ] **Step 7: Ignore the generated fixture, and fix a pre-existing `.gitignore` bug**
 
-Confirm `scripts/fixtures/propiedades-ejemplo.xlsx` is committed (it's a small generated test
-fixture, not a secret) so the test is reproducible without regenerating it — actually the
-`beforeAll` regenerates it every run, so add the fixtures directory to `.gitignore` instead:
+The `beforeAll` in Step 2 regenerates `scripts/fixtures/propiedades-ejemplo.xlsx` on every test
+run, so it doesn't need to be committed — ignore it:
 
 `.gitignore` (append):
 
 ```
 scripts/fixtures/
+```
+
+While touching `.gitignore`, also fix a bug from Task 1's scaffold: `create-next-app`
+generated a `.env*` ignore rule, which (being a glob, not just `.env`) also silently excludes
+`.env.example` — the checked-in template file this plan's Task 17 README points people to.
+Without this fix, `.env.example` would never make it into the repo:
+
+`.gitignore` (append):
+
+```
+!.env.example
 ```
 
 - [ ] **Step 8: Commit**
