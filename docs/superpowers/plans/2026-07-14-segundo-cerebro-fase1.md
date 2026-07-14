@@ -577,6 +577,7 @@ git commit -m "feat: add generic Postgres repository and pg-mem test harness"
 ## Task 4: Contact and Property domain modules
 
 **Files:**
+- Create: `src/lib/text/normalize.ts`
 - Create: `src/lib/domain/contactos.ts`
 - Create: `src/lib/domain/propiedades.ts`
 - Test: `src/lib/domain/contactos.test.ts`
@@ -584,10 +585,18 @@ git commit -m "feat: add generic Postgres repository and pg-mem test harness"
 
 **Interfaces:**
 - Consumes: `createRepository`, `createTestPool` (Task 3).
-- Produces: `Contacto`, `Propiedad` types; `createContactosModule(pool)` with
+- Produces: `normalizeText(text)` (accent/case-insensitive helper, reused by Task 8's
+  matching logic); `Contacto`, `Propiedad` types; `createContactosModule(pool)` with
   `{ ...repo, findByNombreLike(nombre), findNecesitanSeguimiento(diasSinActividad) }`;
   `createPropiedadesModule(pool)` with `{ ...repo, findByDireccionLike(direccion), withTotales(propiedad) }`.
   Later tasks (bot matching, dashboard, reminders) depend on these exact function names.
+- **Note:** `findByNombreLike`/`findByDireccionLike` filter in JS via `normalizeText` rather
+  than SQL `ILIKE`. Two reasons, confirmed while implementing: (1) `ILIKE` is case-insensitive
+  but accent-*sensitive*, and Whisper transcribes spoken audio which carries no written
+  accents, so "maria" must still match "María Gómez"; (2) this keeps matching logic identical
+  between the pg-mem test double and real Postgres. `findNecesitanSeguimiento` uses
+  `etapa not in (...)` with literal values rather than `!= all($1)`, since pg-mem's SQL
+  engine doesn't implement the `all()` array function.
 
 - [ ] **Step 1: Write the failing contactos test**
 
@@ -724,12 +733,14 @@ describe("propiedades module", () => {
       "insert into consultas (propiedad_id, contacto_id, canal) values ($1, $2, 'WhatsApp')",
       [propiedad.id, contactoId]
     );
+    // interes_resultante is passed explicitly (rather than left NULL) to sidestep a pg-mem
+    // limitation where CHECK constraints don't short-circuit on NULL the way real Postgres does.
     await pool.query(
-      "insert into muestras (contacto_id, propiedad_id) values ($1, $2)",
+      "insert into muestras (contacto_id, propiedad_id, interes_resultante) values ($1, $2, 'Indeciso')",
       [contactoId, propiedad.id]
     );
     await pool.query(
-      "insert into muestras (contacto_id, propiedad_id) values ($1, $2)",
+      "insert into muestras (contacto_id, propiedad_id, interes_resultante) values ($1, $2, 'Indeciso')",
       [contactoId, propiedad.id]
     );
 
@@ -749,9 +760,27 @@ Expected: FAIL — `./contactos` and `./propiedades` don't exist yet.
 
 `src/lib/domain/contactos.ts`:
 
+First, add the shared accent-insensitive text helper (Whisper transcribes spoken audio, which
+carries no written accents, so "maria" must still match "María Gómez"; SQL `ILIKE` is
+case-insensitive but accent-*sensitive*, so the fuzzy match is done in JS instead):
+
+`src/lib/text/normalize.ts`:
+
+```typescript
+export function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+```
+
+`src/lib/domain/contactos.ts`:
+
 ```typescript
 import type { Pool } from "pg";
 import { createRepository } from "../db/repository";
+import { normalizeText } from "../text/normalize";
 
 export type Contacto = {
   id: string;
@@ -775,8 +804,6 @@ export type Contacto = {
   created_at: string;
 };
 
-const ETAPAS_CERRADAS = ["Cerrado-ganado", "Cerrado-perdido", "Inactivo"];
-
 export function createContactosModule(pool: Pool) {
   const repo = createRepository<Contacto>(pool, "contactos");
 
@@ -784,20 +811,18 @@ export function createContactosModule(pool: Pool) {
     ...repo,
 
     async findByNombreLike(nombre: string): Promise<Contacto[]> {
-      const result = await pool.query(
-        "select * from contactos where nombre ilike $1 order by created_at desc",
-        [`%${nombre}%`]
-      );
-      return result.rows;
+      const todos = await this.list();
+      const normalizedQuery = normalizeText(nombre);
+      return todos.filter((c) => normalizeText(c.nombre).includes(normalizedQuery));
     },
 
     async findNecesitanSeguimiento(diasSinActividad: number): Promise<Contacto[]> {
       const result = await pool.query(
         `select * from contactos
-         where etapa != all($1)
-         and ultima_actividad < now() - ($2 || ' days')::interval
+         where etapa not in ('Cerrado-ganado', 'Cerrado-perdido', 'Inactivo')
+         and ultima_actividad < now() - ($1 || ' days')::interval
          order by ultima_actividad asc`,
-        [ETAPAS_CERRADAS, diasSinActividad]
+        [diasSinActividad]
       );
       return result.rows;
     },
@@ -819,6 +844,7 @@ export function createContactosModule(pool: Pool) {
 ```typescript
 import type { Pool } from "pg";
 import { createRepository } from "../db/repository";
+import { normalizeText } from "../text/normalize";
 
 export type Propiedad = {
   id: string;
@@ -847,11 +873,9 @@ export function createPropiedadesModule(pool: Pool) {
     ...repo,
 
     async findByDireccionLike(direccion: string): Promise<Propiedad[]> {
-      const result = await pool.query(
-        "select * from propiedades where direccion ilike $1 order by created_at desc",
-        [`%${direccion}%`]
-      );
-      return result.rows;
+      const todas = await this.list();
+      const normalizedQuery = normalizeText(direccion);
+      return todas.filter((p) => normalizeText(p.direccion).includes(normalizedQuery));
     },
 
     async withTotales(propiedad: Propiedad): Promise<PropiedadConTotales> {
