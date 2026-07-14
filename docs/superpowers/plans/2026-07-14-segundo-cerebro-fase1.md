@@ -3161,23 +3161,28 @@ git commit -m "feat: add property list and detail dashboard pages"
 ## Task 15: Dashboard authentication + security pass
 
 **Files:**
-- Create: `src/middleware.ts`
-- Test: `src/middleware.test.ts`
+- Create: `src/proxy.ts`
+- Test: `src/proxy.test.ts`
 
 **Interfaces:**
 - Produces: HTTP Basic Auth gate over every route except `/api/telegram/webhook` and
   `/api/cron/recordatorios` (which use their own secret checks from Tasks 10–11).
 
+> **Note:** This Next.js version renamed the `middleware.ts` file convention to `proxy.ts`
+> (function `middleware` → `proxy`) — confirmed against
+> `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md` before
+> writing this task. Do not create a `middleware.ts` file; it is deprecated in this version.
+
 - [ ] **Step 1: Write the failing test**
 
-`src/middleware.test.ts`:
+`src/proxy.test.ts`:
 
 ```typescript
 import { describe, it, expect, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
-import { middleware } from "./middleware";
+import { proxy } from "./proxy";
 
-describe("dashboard auth middleware", () => {
+describe("dashboard auth proxy", () => {
   beforeEach(() => {
     process.env.DASHBOARD_USER = "brunella";
     process.env.DASHBOARD_PASSWORD = "supersecret";
@@ -3185,19 +3190,19 @@ describe("dashboard auth middleware", () => {
 
   it("skips auth for the Telegram webhook route", () => {
     const request = new NextRequest("https://example.com/api/telegram/webhook");
-    const response = middleware(request);
+    const response = proxy(request);
     expect(response.status).toBe(200);
   });
 
   it("skips auth for the cron route", () => {
     const request = new NextRequest("https://example.com/api/cron/recordatorios");
-    const response = middleware(request);
+    const response = proxy(request);
     expect(response.status).toBe(200);
   });
 
   it("rejects dashboard requests without credentials", () => {
     const request = new NextRequest("https://example.com/contactos");
-    const response = middleware(request);
+    const response = proxy(request);
     expect(response.status).toBe(401);
   });
 
@@ -3206,7 +3211,7 @@ describe("dashboard auth middleware", () => {
     const request = new NextRequest("https://example.com/contactos", {
       headers: { authorization: `Basic ${encoded}` },
     });
-    const response = middleware(request);
+    const response = proxy(request);
     expect(response.status).toBe(200);
   });
 
@@ -3215,7 +3220,7 @@ describe("dashboard auth middleware", () => {
     const request = new NextRequest("https://example.com/contactos", {
       headers: { authorization: `Basic ${encoded}` },
     });
-    const response = middleware(request);
+    const response = proxy(request);
     expect(response.status).toBe(401);
   });
 });
@@ -3223,19 +3228,19 @@ describe("dashboard auth middleware", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npm test -- middleware`
-Expected: FAIL — `./middleware` doesn't exist yet.
+Run: `npm test -- proxy`
+Expected: FAIL — `./proxy` doesn't exist yet.
 
-- [ ] **Step 3: Implement the middleware**
+- [ ] **Step 3: Implement the proxy**
 
-`src/middleware.ts`:
+`src/proxy.ts`:
 
 ```typescript
 import { NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_PATHS = ["/api/telegram/webhook", "/api/cron/recordatorios"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path))) {
     return NextResponse.next();
   }
@@ -3265,14 +3270,14 @@ export const config = {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npm test -- middleware`
+Run: `npm test -- proxy`
 Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/middleware.ts src/middleware.test.ts
-git commit -m "feat: gate the dashboard behind HTTP Basic Auth"
+git add src/proxy.ts src/proxy.test.ts
+git commit -m "feat: gate the dashboard behind HTTP Basic Auth via proxy.ts"
 ```
 
 ---
@@ -3618,7 +3623,7 @@ git commit -m "test: close coverage gaps found in full-suite verification"
   Constraints section.
 - [ ] **Step 2:** Dispatch the `security-reviewer` agent specifically against
   `src/app/api/telegram/webhook/route.ts`, `src/app/api/cron/recordatorios/route.ts`,
-  `src/middleware.ts`, and `scripts/import-excel.ts` (the only places handling external input,
+  `src/proxy.ts`, and `scripts/import-excel.ts` (the only places handling external input,
   secrets, or a raw DB connection string).
 - [ ] **Step 3:** Fix every CRITICAL and HIGH finding from both reviews. Re-run `npm test` after
   each fix.
