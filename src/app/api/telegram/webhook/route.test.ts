@@ -13,7 +13,7 @@ vi.mock("@/lib/bot/processVoiceNote", () => ({
 vi.mock("@/lib/db/pool", () => ({ getPool: vi.fn().mockReturnValue({}) }));
 
 import { POST } from "./route";
-import { verifyWebhookSecret } from "@/lib/telegram/client";
+import { verifyWebhookSecret, sendMessage } from "@/lib/telegram/client";
 import { processVoiceNote } from "@/lib/bot/processVoiceNote";
 
 function buildRequest(body: unknown, secretHeader?: string) {
@@ -26,7 +26,9 @@ function buildRequest(body: unknown, secretHeader?: string) {
 
 describe("POST /api/telegram/webhook", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.mocked(verifyWebhookSecret).mockReturnValue(true);
+    process.env.TELEGRAM_ADMIN_CHAT_ID = "1";
   });
 
   it("rejects requests with an invalid webhook secret", async () => {
@@ -56,5 +58,51 @@ describe("POST /api/telegram/webhook", () => {
 
     expect(response.status).toBe(200);
     expect(processVoiceNote).toHaveBeenCalled();
+  });
+
+  it("silently ignores voice notes from a chat id other than the configured admin", async () => {
+    const response = await POST(
+      buildRequest(
+        { message: { chat: { id: 42 }, voice: { file_id: "abc123" } } },
+        "secret"
+      )
+    );
+
+    expect(response.status).toBe(200);
+    expect(processVoiceNote).not.toHaveBeenCalled();
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("ignores every update when TELEGRAM_ADMIN_CHAT_ID is not configured", async () => {
+    delete process.env.TELEGRAM_ADMIN_CHAT_ID;
+    const response = await POST(
+      buildRequest(
+        { message: { chat: { id: 1 }, voice: { file_id: "abc123" } } },
+        "secret"
+      )
+    );
+
+    expect(response.status).toBe(200);
+    expect(processVoiceNote).not.toHaveBeenCalled();
+  });
+
+  it("replies with an error message instead of throwing when processing fails", async () => {
+    vi.mocked(processVoiceNote).mockRejectedValueOnce(new Error("Groq is down"));
+
+    const response = await POST(
+      buildRequest(
+        { message: { chat: { id: 1 }, voice: { file_id: "abc123" } } },
+        "secret"
+      )
+    );
+
+    expect(response.status).toBe(200);
+    expect(sendMessage).toHaveBeenCalledWith(1, expect.stringMatching(/no pude procesar/i));
+  });
+
+  it("ignores malformed update bodies instead of throwing", async () => {
+    const response = await POST(buildRequest({ not: "a telegram update" }, "secret"));
+    expect(response.status).toBe(200);
+    expect(processVoiceNote).not.toHaveBeenCalled();
   });
 });

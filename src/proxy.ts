@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeEqual } from "./lib/security/safeEqual";
 
 const PUBLIC_PATHS = ["/api/telegram/webhook", "/api/cron/recordatorios"];
 
@@ -7,14 +8,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const expectedUser = process.env.DASHBOARD_USER;
-  const expectedPassword = process.env.DASHBOARD_PASSWORD;
+  const expectedUser = process.env.DASHBOARD_USER ?? "";
+  const expectedPassword = process.env.DASHBOARD_PASSWORD ?? "";
   const authHeader = request.headers.get("authorization");
 
   if (authHeader?.startsWith("Basic ")) {
     const decoded = Buffer.from(authHeader.slice(6), "base64").toString("utf-8");
     const [user, password] = decoded.split(":");
-    if (user === expectedUser && password === expectedPassword) {
+    if (safeEqual(user ?? "", expectedUser) && safeEqual(password ?? "", expectedPassword)) {
       return NextResponse.next();
     }
   }

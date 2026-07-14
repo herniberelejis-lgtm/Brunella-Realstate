@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
 import { getDomainModules } from "@/lib/domain/factory";
+import type { Consulta } from "@/lib/domain/consultas";
+import type { Muestra } from "@/lib/domain/muestras";
+import type { Oferta } from "@/lib/domain/ofertas";
 
 export default async function PropiedadDetailPage({
   params,
@@ -47,7 +50,7 @@ export default async function PropiedadDetailPage({
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-slate-700">Historial de consultas</h2>
         <ul className="mt-2 space-y-1 text-sm text-slate-600">
-          {consultasDeLaPropiedad.map((c: any) => (
+          {consultasDeLaPropiedad.map((c: Consulta) => (
             <li key={c.id}>
               {new Date(c.fecha).toLocaleDateString("es-AR")} — {c.canal}
             </li>
@@ -59,7 +62,7 @@ export default async function PropiedadDetailPage({
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-slate-700">Historial de muestras</h2>
         <ul className="mt-2 space-y-1 text-sm text-slate-600">
-          {muestrasDeLaPropiedad.map((m: any) => (
+          {muestrasDeLaPropiedad.map((m: Muestra) => (
             <li key={m.id}>
               {new Date(m.fecha).toLocaleDateString("es-AR")} — {m.feedback ?? "sin feedback"} (
               {m.interes_resultante ?? "sin definir"})
@@ -72,7 +75,7 @@ export default async function PropiedadDetailPage({
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-slate-700">Ofertas recibidas</h2>
         <ul className="mt-2 space-y-1 text-sm text-slate-600">
-          {ofertasDeLaPropiedad.map((o: any) => (
+          {ofertasDeLaPropiedad.map((o: Oferta) => (
             <li key={o.id}>
               ${o.monto} — {o.estado} ({new Date(o.fecha).toLocaleDateString("es-AR")})
             </li>

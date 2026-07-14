@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
 import {
   verifyWebhookSecret,
@@ -15,13 +16,21 @@ import { createMuestrasModule } from "@/lib/domain/muestras";
 import { createConsultasModule } from "@/lib/domain/consultas";
 import { createOfertasModule } from "@/lib/domain/ofertas";
 
-type TelegramUpdate = {
-  message?: {
-    chat: { id: number };
-    text?: string;
-    voice?: { file_id: string };
-  };
-};
+const telegramUpdateSchema = z.object({
+  message: z
+    .object({
+      chat: z.object({ id: z.number() }),
+      text: z.string().optional(),
+      voice: z.object({ file_id: z.string() }).optional(),
+    })
+    .optional(),
+});
+
+function isFromAdmin(chatId: number): boolean {
+  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (!adminChatId) return false;
+  return chatId === Number(adminChatId);
+}
 
 export async function POST(request: NextRequest) {
   const secretHeader = request.headers.get("x-telegram-bot-api-secret-token");
@@ -29,34 +38,47 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid secret" }, { status: 401 });
   }
 
-  const update = (await request.json()) as TelegramUpdate;
-  const voice = update.message?.voice;
-  const chatId = update.message?.chat.id;
-
-  if (!voice || !chatId) {
+  const rawBody = await request.json();
+  const parsed = telegramUpdateSchema.safeParse(rawBody);
+  if (!parsed.success) {
     return NextResponse.json({ ok: true });
   }
 
-  const fileUrl = await getFileDownloadUrl(voice.file_id);
-  const audioBuffer = await downloadFile(fileUrl);
+  const voice = parsed.data.message?.voice;
+  const chatId = parsed.data.message?.chat.id;
 
-  const pool = getPool();
-  const { respuesta } = await processVoiceNote(
-    {
-      transcribeAudio,
-      extractStructuredData,
-      contactos: createContactosModule(pool),
-      propiedades: createPropiedadesModule(pool),
-      conversaciones: createConversacionesModule(pool),
-      muestras: createMuestrasModule(pool),
-      consultas: createConsultasModule(pool),
-      ofertas: createOfertasModule(pool),
-    },
-    audioBuffer,
-    `${voice.file_id}.oga`
-  );
+  // This bot is for the agent's own internal note-taking, not a public assistant — silently
+  // drop anything from a chat that isn't hers, rather than processing (and paying Groq for)
+  // voice notes from whoever finds the bot's username.
+  if (!voice || !chatId || !isFromAdmin(chatId)) {
+    return NextResponse.json({ ok: true });
+  }
 
-  await sendMessage(chatId, respuesta);
+  try {
+    const fileUrl = await getFileDownloadUrl(voice.file_id);
+    const audioBuffer = await downloadFile(fileUrl);
+
+    const pool = getPool();
+    const { respuesta } = await processVoiceNote(
+      {
+        transcribeAudio,
+        extractStructuredData,
+        contactos: createContactosModule(pool),
+        propiedades: createPropiedadesModule(pool),
+        conversaciones: createConversacionesModule(pool),
+        muestras: createMuestrasModule(pool),
+        consultas: createConsultasModule(pool),
+        ofertas: createOfertasModule(pool),
+      },
+      audioBuffer,
+      `${voice.file_id}.oga`
+    );
+
+    await sendMessage(chatId, respuesta);
+  } catch (error) {
+    console.error("Failed to process voice note", error);
+    await sendMessage(chatId, "No pude procesar esa nota de voz. Probá de nuevo en un rato.");
+  }
 
   return NextResponse.json({ ok: true });
 }

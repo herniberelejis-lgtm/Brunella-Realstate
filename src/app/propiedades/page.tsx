@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { getDomainModules } from "@/lib/domain/factory";
+import type { PropiedadConTotales } from "@/lib/domain/propiedades";
 
 export default async function PropiedadesPage() {
   const { propiedades } = getDomainModules();
   const todas = await propiedades.list();
-  const conTotales = await Promise.all(todas.map((p: any) => propiedades.withTotales(p)));
+  const conTotales = await Promise.all(todas.map((p) => propiedades.withTotales(p)));
 
   return (
     <main className="mx-auto max-w-2xl p-4">
       <h1 className="mb-4 text-xl font-semibold text-slate-900">Propiedades</h1>
       <ul className="space-y-2">
-        {conTotales.map((propiedad: any) => (
+        {conTotales.map((propiedad: PropiedadConTotales) => (
           <li key={propiedad.id}>
             <Link
               href={`/propiedades/${propiedad.id}`}

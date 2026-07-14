@@ -2,6 +2,11 @@ import { notFound } from "next/navigation";
 import { getDomainModules } from "@/lib/domain/factory";
 import { StageBadge } from "@/components/StageBadge";
 import { TemperatureBadge } from "@/components/TemperatureBadge";
+import type { Busqueda } from "@/lib/domain/busquedas";
+import type { Propiedad } from "@/lib/domain/propiedades";
+import type { Conversacion } from "@/lib/domain/conversaciones";
+import type { Muestra } from "@/lib/domain/muestras";
+import type { Oferta } from "@/lib/domain/ofertas";
 
 export default async function ContactoDetailPage({
   params,
@@ -21,13 +26,25 @@ export default async function ContactoDetailPage({
       conversaciones.findByContactoId(id),
       muestras.findByContactoId(id),
       ofertas.findByContactoId(id),
-      propiedades.list({ contacto_propietario_id: id } as any),
+      propiedades.list({ contacto_propietario_id: id }),
     ]);
 
   const timeline = [
-    ...conversacionesDelContacto.map((c: any) => ({ tipo: "Conversación", fecha: c.fecha, detalle: c.resumen })),
-    ...muestrasDelContacto.map((m: any) => ({ tipo: "Muestra", fecha: m.fecha, detalle: m.feedback })),
-    ...ofertasDelContacto.map((o: any) => ({ tipo: "Oferta", fecha: o.fecha, detalle: `$${o.monto} (${o.estado})` })),
+    ...conversacionesDelContacto.map((c: Conversacion) => ({
+      tipo: "Conversación",
+      fecha: c.fecha,
+      detalle: c.resumen,
+    })),
+    ...muestrasDelContacto.map((m: Muestra) => ({
+      tipo: "Muestra",
+      fecha: m.fecha,
+      detalle: m.feedback,
+    })),
+    ...ofertasDelContacto.map((o: Oferta) => ({
+      tipo: "Oferta",
+      fecha: o.fecha,
+      detalle: `$${o.monto} (${o.estado})`,
+    })),
   ].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
   return (
@@ -49,7 +66,7 @@ export default async function ContactoDetailPage({
       {busquedasDelContacto.length > 0 && (
         <section className="mt-6">
           <h2 className="text-sm font-semibold text-slate-700">Búsqueda activa</h2>
-          {busquedasDelContacto.map((b: any) => (
+          {busquedasDelContacto.map((b: Busqueda) => (
             <p key={b.id} className="mt-1 text-sm text-slate-600">
               {b.tipo_operacion} · {b.tipo_propiedad} · {b.zona} · hasta ${b.presupuesto}
             </p>
@@ -60,7 +77,7 @@ export default async function ContactoDetailPage({
       {propiedadesEnCartera.length > 0 && (
         <section className="mt-6">
           <h2 className="text-sm font-semibold text-slate-700">Propiedades en cartera</h2>
-          {propiedadesEnCartera.map((p: any) => (
+          {propiedadesEnCartera.map((p: Propiedad) => (
             <p key={p.id} className="mt-1 text-sm text-slate-600">
               {p.direccion} · ${p.precio} · {p.estado}
             </p>

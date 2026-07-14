@@ -34,6 +34,8 @@ Sin `DATABASE_URL` configurado, la app corre con datos de ejemplo en memoria —
      `openssl rand -hex 20`).
    - Obtener el `chat_id` de Brunella (mandarle un mensaje al bot y consultar
      `https://api.telegram.org/bot<TOKEN>/getUpdates`) → pegarlo como `TELEGRAM_ADMIN_CHAT_ID`.
+     **Importante:** sin esta variable, el webhook ignora silenciosamente cualquier nota de
+     voz (es la única autorización — cualquier otro chat_id se descarta sin procesar).
    - Una vez desplegado en Vercel (paso 5), registrar el webhook:
      ```bash
      curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \

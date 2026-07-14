@@ -1,3 +1,5 @@
+import { safeEqual } from "../security/safeEqual";
+
 function requireBotToken(): string {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not set");
@@ -25,7 +27,9 @@ export async function sendMessage(
 
 export async function getFileDownloadUrl(fileId: string): Promise<string> {
   const token = requireBotToken();
-  const response = await fetch(apiUrl("getFile") + `?file_id=${fileId}`);
+  const response = await fetch(
+    `${apiUrl("getFile")}?file_id=${encodeURIComponent(fileId)}`
+  );
   if (!response.ok) {
     throw new Error(`Telegram getFile failed (${response.status})`);
   }
@@ -45,5 +49,5 @@ export async function downloadFile(url: string): Promise<Buffer> {
 export function verifyWebhookSecret(headerValue: string | undefined | null): boolean {
   const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
   if (!expected || !headerValue) return false;
-  return headerValue === expected;
+  return safeEqual(headerValue, expected);
 }
