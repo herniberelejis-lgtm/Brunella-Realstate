@@ -1,0 +1,49 @@
+function requireBotToken(): string {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not set");
+  return token;
+}
+
+function apiUrl(method: string): string {
+  return `https://api.telegram.org/bot${requireBotToken()}/${method}`;
+}
+
+export async function sendMessage(
+  chatId: number,
+  text: string,
+  options?: { reply_markup?: unknown }
+): Promise<void> {
+  const response = await fetch(apiUrl("sendMessage"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text, ...options }),
+  });
+  if (!response.ok) {
+    throw new Error(`Telegram sendMessage failed (${response.status})`);
+  }
+}
+
+export async function getFileDownloadUrl(fileId: string): Promise<string> {
+  const token = requireBotToken();
+  const response = await fetch(apiUrl("getFile") + `?file_id=${fileId}`);
+  if (!response.ok) {
+    throw new Error(`Telegram getFile failed (${response.status})`);
+  }
+  const data = await response.json();
+  return `https://api.telegram.org/file/bot${token}/${data.result.file_path}`;
+}
+
+export async function downloadFile(url: string): Promise<Buffer> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`File download failed (${response.status})`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+export function verifyWebhookSecret(headerValue: string | undefined | null): boolean {
+  const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (!expected || !headerValue) return false;
+  return headerValue === expected;
+}
