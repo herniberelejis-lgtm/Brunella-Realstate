@@ -165,18 +165,6 @@ Tarea programada (por defecto, todos los días a las 9am) que busca contactos co
 
 y le manda a Brunella, por el mismo bot, un mensaje con la lista de a quién conviene seguir.
 
-### Reporte mensual a propietarios
-
-Este reporte es sobre datos que el segundo cerebro ya tiene — no depende de Meta Business (ver
-más abajo la Fase 3, que sí requiere esa integración).
-
-Una vez al mes (tarea programada, mismo mecanismo que los recordatorios), por cada Propiedad
-activa con `contacto_propietario_id` cargado, se genera un resumen del período: cantidad de
-consultas, muestras y ofertas recibidas, con el detalle esencial de cada una. El bot le avisa
-a Brunella por Telegram que el reporte de esa propiedad está listo (con un link o archivo), y
-es ella quien se lo reenvía al propietario por WhatsApp, como ya hace habitualmente — sin
-integración nueva de envío automático.
-
 ## Dashboard web
 
 App web simple, mobile-friendly (para abrir desde el celular).
@@ -242,9 +230,7 @@ la API oficial de WhatsApp Business.
   ambiguo, contacto o propiedad no identificados, cambio de búsqueda).
 - Tests automatizados sobre la capa de datos y la lógica de extracción/matching de contacto y
   propiedad (parseo de transcripción → estructura, resolución de ambigüedad, cálculo de
-  `consultas_totales` / `visitas_totales`), y sobre la generación del reporte mensual (que
-  agrega correctamente consultas/muestras/ofertas del período), siguiendo el flujo TDD del
-  proyecto.
+  `consultas_totales` / `visitas_totales`), siguiendo el flujo TDD del proyecto.
 
 ## Fuera de alcance (Fase 2 — spec futura)
 
