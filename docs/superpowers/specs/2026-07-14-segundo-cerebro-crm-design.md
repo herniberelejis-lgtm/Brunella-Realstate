@@ -126,6 +126,18 @@ Propiedad mostrada a un contacto Comprador.
 - `feedback`
 - `interes_resultante`: Le interesó | No le interesó | Indeciso
 
+### Oferta
+Propuesta de compra/alquiler de un Contacto Comprador sobre una Propiedad. Se carga con la
+misma lógica que Consulta/Muestra (nota de voz, con la misma red de seguridad de confirmar
+antes de guardar).
+
+- `propiedad_id`
+- `contacto_id` (comprador que ofrece)
+- `monto`
+- `fecha`
+- `estado`: Pendiente | Aceptada | Rechazada
+- `origen`: nota_de_voz | manual
+
 ## Flujo del bot de Telegram
 
 1. Brunella graba una nota de voz contándole al bot qué pasó con un contacto.
@@ -135,9 +147,9 @@ Propiedad mostrada a un contacto Comprador.
      parece un contacto nuevo, el bot repregunta antes de guardar)
    - a qué propiedad corresponde, si la nota menciona una (busca coincidencia por dirección o
      referencia; si no matchea ninguna, pregunta o la deja en texto libre)
-   - tipo de evento: conversación general, consulta puntual, muestra, negociación con
+   - tipo de evento: conversación general, consulta puntual, muestra, oferta, negociación con
      propietario
-   - detalles relevantes: feedback, presupuesto mencionado, urgencia
+   - detalles relevantes: feedback, presupuesto u oferta mencionada, urgencia
    - próximo paso sugerido
 4. Se guarda vinculado al contacto correcto. Si detecta cambios relevantes (nueva búsqueda,
    cambio de presupuesto, cambio de etapa) actualiza la ficha.
@@ -153,6 +165,18 @@ Tarea programada (por defecto, todos los días a las 9am) que busca contactos co
 
 y le manda a Brunella, por el mismo bot, un mensaje con la lista de a quién conviene seguir.
 
+### Reporte mensual a propietarios
+
+Este reporte es sobre datos que el segundo cerebro ya tiene — no depende de Meta Business (ver
+más abajo la Fase 3, que sí requiere esa integración).
+
+Una vez al mes (tarea programada, mismo mecanismo que los recordatorios), por cada Propiedad
+activa con `contacto_propietario_id` cargado, se genera un resumen del período: cantidad de
+consultas, muestras y ofertas recibidas, con el detalle esencial de cada una. El bot le avisa
+a Brunella por Telegram que el reporte de esa propiedad está listo (con un link o archivo), y
+es ella quien se lo reenvía al propietario por WhatsApp, como ya hace habitualmente — sin
+integración nueva de envío automático.
+
 ## Dashboard web
 
 App web simple, mobile-friendly (para abrir desde el celular).
@@ -162,10 +186,10 @@ App web simple, mobile-friendly (para abrir desde el celular).
 - **Ficha de contacto**: datos de contacto, búsqueda activa (si es Comprador) o propiedades en
   cartera (si es Propietario/Desarrollista), línea de tiempo completa de conversaciones y
   muestras, próximo paso.
-- **Vista de propiedades**: lista de propiedades con precio, estado, y consultas/visitas
-  totales — para ver de un vistazo cuáles están funcionando y cuáles no.
+- **Vista de propiedades**: lista de propiedades con precio, estado, y consultas/visitas/
+  ofertas totales — para ver de un vistazo cuáles están funcionando y cuáles no.
 - **Ficha de propiedad**: datos de la propiedad, propietario vinculado (si tiene), historial
-  de consultas y muestras.
+  de consultas, muestras y ofertas.
 - **Alta/edición manual**: para cargar o corregir datos sin depender del bot.
 
 Sin gráficos ni métricas complejas en esta fase — prioridad: rápido de mirar antes de una
@@ -214,11 +238,13 @@ la API oficial de WhatsApp Business.
 ## Testing
 
 - Pruebas manuales con notas de voz reales cubriendo casos típicos (nueva conversación, nueva
-  consulta, nueva muestra, negociación con propietario) y casos borde (audio ambiguo, contacto
-  o propiedad no identificados, cambio de búsqueda).
+  consulta, nueva muestra, nueva oferta, negociación con propietario) y casos borde (audio
+  ambiguo, contacto o propiedad no identificados, cambio de búsqueda).
 - Tests automatizados sobre la capa de datos y la lógica de extracción/matching de contacto y
   propiedad (parseo de transcripción → estructura, resolución de ambigüedad, cálculo de
-  `consultas_totales` / `visitas_totales`), siguiendo el flujo TDD del proyecto.
+  `consultas_totales` / `visitas_totales`), y sobre la generación del reporte mensual (que
+  agrega correctamente consultas/muestras/ofertas del período), siguiendo el flujo TDD del
+  proyecto.
 
 ## Fuera de alcance (Fase 2 — spec futura)
 
@@ -226,3 +252,14 @@ El bot de propiedades leerá las **Búsquedas** ya cargadas acá, buscará en Zo
 Grupo Banker / Tokko, filtrará y calificará propiedades según esos criterios, y armará una
 propuesta con las opciones y el motivo de cada una. Al depender de datos ya estructurados por
 la Fase 1, esa etapa se simplifica considerablemente.
+
+## Fuera de alcance (Fase 3 — spec futura)
+
+Panel de redes para uso propio de Brunella (no para los propietarios): cuantificar el
+desempeño de sus publicaciones y campañas en Instagram/Facebook (alcance, interacciones,
+performance de ads) usando la API de Meta Business. Se documenta como fase separada porque no
+existe hoy un conector MCP para esto (se verificó contra el registro de MCP disponible) y
+requiere: crear una app en Meta for Developers vinculada a su Business Manager, gestionar
+tokens de acceso que vencen y deben renovarse periódicamente, y vincular cada publicación o
+campaña a la Propiedad correspondiente. Ninguna otra pieza de este proyecto depende de esta
+fase.
