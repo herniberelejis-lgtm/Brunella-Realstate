@@ -1331,7 +1331,7 @@ function requireApiKey(): string {
 export async function transcribeAudio(audioBuffer: Buffer, filename: string): Promise<string> {
   const apiKey = requireApiKey();
   const form = new FormData();
-  form.append("file", new Blob([audioBuffer]), filename);
+  form.append("file", new Blob([new Uint8Array(audioBuffer)]), filename);
   form.append("model", "whisper-large-v3-turbo");
 
   const response = await fetch(`${GROQ_BASE_URL}/audio/transcriptions`, {
