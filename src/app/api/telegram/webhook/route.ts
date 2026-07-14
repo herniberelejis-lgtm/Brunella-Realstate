@@ -16,6 +16,10 @@ import { createMuestrasModule } from "@/lib/domain/muestras";
 import { createConsultasModule } from "@/lib/domain/consultas";
 import { createOfertasModule } from "@/lib/domain/ofertas";
 
+// Default serverless function timeout (10s on Vercel Hobby) is too short for
+// download + transcribe + LLM extraction + DB writes in sequence.
+export const maxDuration = 60;
+
 const telegramUpdateSchema = z.object({
   message: z
     .object({
