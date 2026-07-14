@@ -3150,6 +3150,18 @@ export default async function PropiedadDetailPage({
       </dl>
 
       <section className="mt-6">
+        <h2 className="text-sm font-semibold text-slate-700">Historial de consultas</h2>
+        <ul className="mt-2 space-y-1 text-sm text-slate-600">
+          {consultasDeLaPropiedad.map((c: any) => (
+            <li key={c.id}>
+              {new Date(c.fecha).toLocaleDateString("es-AR")} — {c.canal}
+            </li>
+          ))}
+          {consultasDeLaPropiedad.length === 0 && <li>Todavía no hay consultas.</li>}
+        </ul>
+      </section>
+
+      <section className="mt-6">
         <h2 className="text-sm font-semibold text-slate-700">Historial de muestras</h2>
         <ul className="mt-2 space-y-1 text-sm text-slate-600">
           {muestrasDeLaPropiedad.map((m: any) => (
