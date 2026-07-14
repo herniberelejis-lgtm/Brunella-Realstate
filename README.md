@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Segundo Cerebro — Brunella Real Estate
 
-## Getting Started
+CRM interno: bot de Telegram por nota de voz + dashboard web. Ver
+`docs/superpowers/specs/2026-07-14-segundo-cerebro-crm-design.md` para el diseño completo y
+`docs/superpowers/plans/2026-07-14-segundo-cerebro-fase1.md` para el plan de implementación.
 
-First, run the development server:
+## Desarrollo local (no requiere ninguna cuenta)
 
 ```bash
+npm install
+npm test
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sin `DATABASE_URL` configurado, la app corre con datos de ejemplo en memoria — anda a
+`http://localhost:3000/contactos` y `http://localhost:3000/propiedades` para verla funcionando.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Puesta en producción — pasos manuales pendientes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Supabase (base de datos gratis)**
+   - Crear cuenta en supabase.com y un proyecto nuevo.
+   - Project Settings → Database → Connection string → copiar la "URI" (modo *Session*, puerto
+     5432) → pegarla como `DATABASE_URL`.
+   - Ejecutar `supabase/migrations/0001_schema.sql` contra ese proyecto (SQL Editor de Supabase,
+     pegar y correr el archivo entero).
 
-## Learn More
+2. **Groq (transcripción + IA, capa gratuita)**
+   - Crear cuenta en console.groq.com → API Keys → generar una → pegarla como `GROQ_API_KEY`.
 
-To learn more about Next.js, take a look at the following resources:
+3. **Telegram (bot de carga por voz)**
+   - Desde la cuenta de Telegram de Brunella, hablarle a `@BotFather` → `/newbot` → seguir los
+     pasos → copiar el token → pegarlo como `TELEGRAM_BOT_TOKEN`.
+   - Generar cualquier string al azar como `TELEGRAM_WEBHOOK_SECRET` (ej. con
+     `openssl rand -hex 20`).
+   - Obtener el `chat_id` de Brunella (mandarle un mensaje al bot y consultar
+     `https://api.telegram.org/bot<TOKEN>/getUpdates`) → pegarlo como `TELEGRAM_ADMIN_CHAT_ID`.
+   - Una vez desplegado en Vercel (paso 5), registrar el webhook:
+     ```bash
+     curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+       -d "url=https://<tu-dominio>.vercel.app/api/telegram/webhook" \
+       -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+     ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. **Autenticación del dashboard**
+   - Elegir un usuario/contraseña y setearlos como `DASHBOARD_USER` / `DASHBOARD_PASSWORD`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+5. **Vercel (hosting gratis + cron diario)**
+   - Crear cuenta en vercel.com, importar este repo.
+   - Cargar todas las variables de entorno de `.env.example` en Project Settings → Environment
+     Variables.
+   - Generar un string al azar como `CRON_SECRET` (Vercel lo agrega automáticamente como
+     `Authorization: Bearer <CRON_SECRET>` en las llamadas a rutas de cron — confirmar que
+     coincide con el valor cargado).
+   - Deploy.
 
-## Deploy on Vercel
+6. **Excel histórico de propiedades**
+   - Conseguir el archivo real de Brunella.
+   - Confirmar los nombres de columna reales contra los que asume
+     `scripts/import-excel.ts` (`fecha`, `direccion`, `tipo`, `descripcion`, `precio`,
+     `consultas`, `visitas`) y ajustar el mapeo si difieren.
+   - Correr: `npm run import:excel -- /ruta/al/archivo.xlsx`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Stack técnico
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js 16 (App Router) + TypeScript + Tailwind, Postgres vía `pg` directo (hosteado en
+Supabase, sin usar su SDK/Auth/Storage), Groq para transcripción y extracción de IA, Telegram
+Bot API, Vercel para hosting + Cron. Tests con Vitest; `pg-mem` emula Postgres en los tests
+sin necesitar Docker ni una cuenta real.
+
+## Fases futuras (no incluidas acá)
+
+- **Fase 2:** bot de búsqueda/filtrado de propiedades en portales (Zonaprop, Grupo Banker,
+  Tokko) usando las Búsquedas ya cargadas.
+- **Fase 3:** panel de métricas de redes (Meta Business) para uso propio de Brunella — no hay
+  conector MCP disponible hoy; requiere una app de Meta for Developers y manejo de tokens.
