@@ -85,8 +85,12 @@ Cambios sobre el schema de Fase 1 (todas migraciones aditivas, sin romper datos 
 - Agregar `moneda`: `ARS` | `USD` (nullable — obligatorio de ahí en más para propiedades
   nuevas, pero nullable para no romper filas migradas del Excel).
 - Agregar `codigo`: texto corto único (ej. `COD-A3F9`), generado automáticamente al crear la
-  propiedad. Se pega como parámetro `ref` en los anuncios de Meta Ads que promocionan esa
-  propiedad puntual.
+  propiedad (o bajo demanda desde la ficha, para propiedades ya existentes que no tienen uno).
+  Se pega como parámetro `ref` en los anuncios de Meta Ads que promocionan esa propiedad
+  puntual.
+- Agregar `dormitorios` (int, nullable) — no existía en Fase 1 (no hacía falta hasta ahora);
+  necesario para que el motor de matching pueda comparar contra el mínimo pedido en la
+  Búsqueda.
 - Sumar `'PH'` a los valores válidos de `tipo_propiedad` (ya usado en Zonaprop como categoría
   separada de Departamento/Casa).
 
@@ -95,6 +99,15 @@ Cambios sobre el schema de Fase 1 (todas migraciones aditivas, sin romper datos 
   (ambos nullable — el lead puede dar solo uno de los dos).
 - Agregar `moneda`: `ARS` | `USD`.
 - Sumar `'PH'` a los valores válidos de `tipo_propiedad`, igual que en `propiedades`.
+- Agregar `documento_aprobado` (bool, default `false`) y `documento_enviado` (bool, default
+  `false`) — soportan el flujo de "aprobar y enviar": si Brunella aprueba antes de que el
+  cliente confirme por WhatsApp, queda marcado como aprobado-pendiente y se envía solo una vez
+  llegue la confirmación (`documento_enviado` evita reenviarlo dos veces).
+
+### `contactos`
+- Agregar `whatsapp_confirmado` (bool, default `false`) — se marca `true` cuando llega el
+  mensaje de confirmación iniciado por el cliente; habilita el envío del documento de
+  compatibilidad sin las restricciones de mensajes iniciados por el negocio.
 
 ### `consultas`
 - Sumar `'formulario_cliente'` a los valores válidos de `origen` (hasta ahora
