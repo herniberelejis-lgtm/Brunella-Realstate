@@ -15,6 +15,8 @@ import { createConversacionesModule } from "@/lib/domain/conversaciones";
 import { createMuestrasModule } from "@/lib/domain/muestras";
 import { createConsultasModule } from "@/lib/domain/consultas";
 import { createOfertasModule } from "@/lib/domain/ofertas";
+import { enviarDocumentoAprobado } from "@/lib/bot/enviarDocumentoAprobado";
+import { getDomainModules } from "@/lib/domain/factory";
 
 // Default serverless function timeout (10s on Vercel Hobby) is too short for
 // download + transcribe + LLM extraction + DB writes in sequence.
@@ -26,6 +28,14 @@ const telegramUpdateSchema = z.object({
       chat: z.object({ id: z.number() }),
       text: z.string().optional(),
       voice: z.object({ file_id: z.string() }).optional(),
+    })
+    .optional(),
+  callback_query: z
+    .object({
+      id: z.string(),
+      data: z.string(),
+      from: z.object({ id: z.number() }),
+      message: z.object({ chat: z.object({ id: z.number() }) }),
     })
     .optional(),
 });
@@ -45,6 +55,29 @@ export async function POST(request: NextRequest) {
   const rawBody = await request.json();
   const parsed = telegramUpdateSchema.safeParse(rawBody);
   if (!parsed.success) {
+    return NextResponse.json({ ok: true });
+  }
+
+  const callback = parsed.data.callback_query;
+  if (callback && isFromAdmin(callback.from.id)) {
+    const [action, busquedaId] = callback.data.split(":");
+    if (action === "aprobar_busqueda" && busquedaId) {
+      const { busquedas, contactos } = getDomainModules();
+      const busqueda = await busquedas.findById(busquedaId);
+      if (busqueda) {
+        const contacto = await contactos.findById(busqueda.contacto_id);
+        await busquedas.update(busquedaId, { documento_aprobado: true });
+        if (contacto?.whatsapp_confirmado) {
+          await enviarDocumentoAprobado(busquedaId);
+          await sendMessage(callback.message.chat.id, "Listo, se lo mandé por WhatsApp.");
+        } else {
+          await sendMessage(
+            callback.message.chat.id,
+            "Aprobado. Todavía no confirmó por WhatsApp — se lo mando apenas escriba."
+          );
+        }
+      }
+    }
     return NextResponse.json({ ok: true });
   }
 

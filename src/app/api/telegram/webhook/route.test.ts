@@ -105,4 +105,34 @@ describe("POST /api/telegram/webhook", () => {
     expect(response.status).toBe(200);
     expect(processVoiceNote).not.toHaveBeenCalled();
   });
+
+  it("approves and sends immediately when the contacto already confirmed WhatsApp", async () => {
+    const busquedasFindById = vi.fn().mockResolvedValue({ id: "b1", contacto_id: "c1" });
+    const busquedasUpdate = vi.fn().mockResolvedValue({});
+    const contactosFindById = vi.fn().mockResolvedValue({ id: "c1", whatsapp_confirmado: true });
+    vi.doMock("@/lib/domain/factory", () => ({
+      getDomainModules: () => ({
+        busquedas: { findById: busquedasFindById, update: busquedasUpdate },
+        contactos: { findById: contactosFindById },
+      }),
+    }));
+    const { enviarDocumentoAprobado } = await import("@/lib/bot/enviarDocumentoAprobado");
+    vi.mocked(enviarDocumentoAprobado);
+
+    const response = await POST(
+      buildRequest(
+        {
+          callback_query: {
+            id: "cb1",
+            data: "aprobar_busqueda:b1",
+            from: { id: 1 },
+            message: { chat: { id: 1 } },
+          },
+        },
+        "secret"
+      )
+    );
+
+    expect(response.status).toBe(200);
+  });
 });
