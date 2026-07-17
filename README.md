@@ -76,6 +76,13 @@ Sin `DATABASE_URL` configurado, la app corre con datos de ejemplo en memoria —
      coincide con el valor cargado).
    - Deploy.
 
+6. **Excel histórico de propiedades**
+   - Conseguir el archivo real de Brunella.
+   - Confirmar los nombres de columna reales contra los que asume
+     `scripts/import-excel.ts` (`fecha`, `direccion`, `tipo`, `descripcion`, `precio`,
+     `consultas`, `visitas`) y ajustar el mapeo si difieren.
+   - Correr: `npm run import:excel -- /ruta/al/archivo.xlsx`
+
 ## Fase 2 — Configurar Messenger, Instagram y WhatsApp
 
 Esto requiere una única app en Meta for Developers, conectada a la Página de Facebook, la
@@ -99,13 +106,6 @@ cuenta de Instagram y el número de WhatsApp Business de Brunella. Una vez cread
    ficha en el CRM, botón "Generar código" si todavía no tiene uno) en el campo `ref` del
    anuncio.
 
-7. **Excel histórico de propiedades**
-   - Conseguir el archivo real de Brunella.
-   - Confirmar los nombres de columna reales contra los que asume
-     `scripts/import-excel.ts` (`fecha`, `direccion`, `tipo`, `descripcion`, `precio`,
-     `consultas`, `visitas`) y ajustar el mapeo si difieren.
-   - Correr: `npm run import:excel -- /ruta/al/archivo.xlsx`
-
 ## Stack técnico
 
 Next.js 16 (App Router) + TypeScript + Tailwind, Postgres vía `pg` directo (hosteado en
@@ -115,7 +115,10 @@ sin necesitar Docker ni una cuenta real.
 
 ## Fases futuras (no incluidas acá)
 
-- **Fase 2:** bot de búsqueda/filtrado de propiedades en portales (Zonaprop, Grupo Banker,
-  Tokko) usando las Búsquedas ya cargadas.
 - **Fase 3:** panel de métricas de redes (Meta Business) para uso propio de Brunella — no hay
   conector MCP disponible hoy; requiere una app de Meta for Developers y manejo de tokens.
+- Integración en vivo con Tokko/Adinco (búsqueda automática en esas plataformas) — depende de
+  que Brunella consiga API keys y se confirme qué permiten hacer esas APIs; el motor de
+  matching (`src/lib/bot/propertyMatching.ts`) ya está diseñado con una fuente de datos
+  intercambiable para poder sumarlo sin rediseñar nada. Ver
+  `docs/superpowers/specs/2026-07-15-fase2-intake-clientes-design.md`.
