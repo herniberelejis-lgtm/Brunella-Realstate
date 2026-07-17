@@ -4,6 +4,7 @@ import { getDomainModules } from "@/lib/domain/factory";
 import { parseImagenes } from "@/lib/view/imagenes";
 import { PencilIcon } from "@/components/icons/PencilIcon";
 import { PhotoIcon } from "@/components/icons/PhotoIcon";
+import { generarCodigoAction } from "./editar/actions";
 import type { Consulta } from "@/lib/domain/consultas";
 import type { Muestra } from "@/lib/domain/muestras";
 import type { Oferta } from "@/lib/domain/ofertas";
@@ -66,6 +67,22 @@ export default async function PropiedadDetailPage({
       </div>
       <p className="mt-1 text-sm text-slate-600">
         {propiedad.tipo_propiedad} · ${propiedad.precio ?? "—"} · {propiedad.estado}
+      </p>
+      <p className="mt-1 text-sm text-slate-600">
+        Código de anuncio:{" "}
+        {propiedad.codigo ?? (
+          <form action={generarCodigoAction.bind(null, propiedad.id)} className="inline">
+            <button
+              type="submit"
+              className="cursor-pointer font-medium text-indigo-600 underline hover:text-indigo-800"
+            >
+              Generar código
+            </button>
+          </form>
+        )}
+        {propiedad.codigo && (
+          <span className="ml-1 font-mono font-medium text-slate-900">{propiedad.codigo}</span>
+        )}
       </p>
       {propiedad.descripcion && (
         <p className="mt-2 whitespace-pre-line text-sm text-slate-600">{propiedad.descripcion}</p>
