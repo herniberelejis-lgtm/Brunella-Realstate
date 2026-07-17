@@ -3,6 +3,9 @@
 import { redirect } from "next/navigation";
 import { getDomainModules } from "@/lib/domain/factory";
 import { parseCompradorForm, parsePropietarioForm } from "@/lib/view/leadForm";
+import { sendMediaGroup, sendMessage } from "@/lib/telegram/client";
+import { createPortfolioPropioSource } from "@/lib/bot/propertyMatching";
+import { notificarBrunellaCompatibilidad } from "@/lib/bot/compatibilityDocument";
 
 async function resolveAtribucion(token: string | null) {
   if (!token) return { fuente: "Otro" as const, propiedadId: null as string | null, leadId: null as string | null };
@@ -43,7 +46,7 @@ export async function submitCompradorAction(
     });
   }
 
-  await busquedas.create({
+  const nuevaBusqueda = await busquedas.create({
     contacto_id: contacto.id,
     tipo_operacion: data.tipo_operacion,
     tipo_propiedad: data.tipo_propiedad,
@@ -66,6 +69,19 @@ export async function submitCompradorAction(
   }
   if (leadId) {
     await leadsPendientes.marcarUsado(leadId);
+  }
+
+  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (adminChatId) {
+    const source = createPortfolioPropioSource(getDomainModules().propiedades);
+    const matches = await source.buscar(nuevaBusqueda);
+    await notificarBrunellaCompatibilidad(
+      { sendMediaGroup, sendMessage },
+      Number(adminChatId),
+      contacto,
+      nuevaBusqueda,
+      matches
+    );
   }
 
   redirect(`/formulario/confirmar?c=${contacto.id}`);
@@ -111,6 +127,14 @@ export async function submitPropietarioAction(
 
   if (leadId) {
     await leadsPendientes.marcarUsado(leadId);
+  }
+
+  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (adminChatId) {
+    await sendMessage(
+      Number(adminChatId),
+      `Nueva propiedad cargada por ${contacto.nombre} (${data.que_quiere_hacer}): ${data.direccion}. Revisala en el CRM.`
+    );
   }
 
   redirect(`/formulario/confirmar?c=${contacto.id}`);

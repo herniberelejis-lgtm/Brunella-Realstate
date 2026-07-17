@@ -27,7 +27,13 @@ vi.mock("@/lib/domain/factory", () => ({
 
 vi.mock("next/navigation", () => ({ redirect: vi.fn(() => { throw new Error("REDIRECT"); }) }));
 
-import { submitCompradorAction } from "./actions";
+const { sendMediaGroup, sendMessage } = vi.hoisted(() => ({
+  sendMediaGroup: vi.fn().mockResolvedValue(undefined),
+  sendMessage: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/lib/telegram/client", () => ({ sendMediaGroup, sendMessage }));
+
+import { submitCompradorAction, submitPropietarioAction } from "./actions";
 import { redirect } from "next/navigation";
 
 function fd(entries: Record<string, string>): FormData {
@@ -119,5 +125,58 @@ describe("submitCompradorAction", () => {
       })
     );
     expect(leadsPendientesMarcarUsado).toHaveBeenCalledWith("lead-1");
+  });
+
+  it("notifies Brunella on Telegram with the compatibility results after creating the busqueda", async () => {
+    process.env.TELEGRAM_ADMIN_CHAT_ID = "999";
+    contactosFindByTelefono.mockResolvedValue(null);
+    contactosCreate.mockResolvedValue({ id: "contacto-3", nombre: "Marcos", telefono: "54935111" });
+    busquedasCreate.mockResolvedValue({
+      id: "busqueda-1",
+      contacto_id: "contacto-3",
+      tipo_propiedad: "PH",
+    });
+
+    await expect(
+      submitCompradorAction(
+        null,
+        fd({
+          nombre: "Marcos",
+          telefono: "54935111",
+          tipo_operacion: "Compra",
+          tipo_propiedad: "PH",
+        })
+      )
+    ).rejects.toThrow("REDIRECT");
+
+    expect(sendMessage).toHaveBeenCalled();
+  });
+});
+
+describe("submitPropietarioAction", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("notifies Brunella on Telegram that a new property was submitted", async () => {
+    process.env.TELEGRAM_ADMIN_CHAT_ID = "999";
+    contactosFindByTelefono.mockResolvedValue(null);
+    contactosCreate.mockResolvedValue({ id: "contacto-4", nombre: "Marcela" });
+
+    await expect(
+      submitPropietarioAction(
+        null,
+        fd({
+          nombre: "Marcela",
+          telefono: "54935112",
+          que_quiere_hacer: "Vender",
+          direccion: "Colón 1234",
+          tipo_propiedad: "Casa",
+        })
+      )
+    ).rejects.toThrow("REDIRECT");
+
+    expect(sendMessage).toHaveBeenCalledWith(
+      999,
+      expect.stringContaining("Marcela")
+    );
   });
 });
