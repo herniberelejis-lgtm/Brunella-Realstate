@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeEqual } from "./lib/security/safeEqual";
 
-const PUBLIC_PATHS = ["/api/telegram/webhook", "/api/cron/recordatorios"];
+const PUBLIC_PATHS = [
+  "/api/telegram/webhook",
+  "/api/cron/recordatorios",
+  "/api/meta/webhook",
+  "/api/whatsapp/webhook",
+  "/formulario",
+];
 
 export function proxy(request: NextRequest) {
   if (PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path))) {

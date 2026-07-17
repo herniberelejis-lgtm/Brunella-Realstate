@@ -40,8 +40,20 @@ function buildInMemoryModules(): DomainModules {
         (await contactosTable.list()).filter((c) =>
           c.nombre.toLowerCase().includes(nombre.toLowerCase())
         ),
+      findByTelefono: async (telefono: string) => {
+        const normalizado = telefono.replace(/\D/g, "");
+        return (
+          (await contactosTable.list()).find(
+            (c: any) => c.telefono?.replace(/\D/g, "") === normalizado
+          ) ?? null
+        );
+      },
       findNecesitanSeguimiento: async () => [],
       marcarActividad: async () => {},
+      marcarWhatsappConfirmado: async (id: string) => {
+        const item = await contactosTable.findById(id);
+        if (item) await contactosTable.update(id, { whatsapp_confirmado: true } as any);
+      },
     } as any,
     propiedades: {
       ...propiedadesTable,

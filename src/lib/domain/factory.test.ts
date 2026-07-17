@@ -32,7 +32,7 @@ describe("getDomainModules", () => {
     await expect(modules.contactos.list()).rejects.toThrow();
   });
 
-  it("exercises every in-memory wrapper method across all seven entities", async () => {
+  it("exercises every in-memory wrapper method across all eight entities", async () => {
     delete process.env.DATABASE_URL;
     vi.resetModules();
     const { getDomainModules: freshGetDomainModules } = await import("./factory");
@@ -40,7 +40,7 @@ describe("getDomainModules", () => {
 
     const contacto = await modules.contactos.create({
       nombre: "Test In-Memory",
-      telefono: null,
+      telefono: "+54 351 555-0000",
       email: null,
       fuente: "Otro",
       fecha_primer_contacto: "2026-01-01",
@@ -48,11 +48,20 @@ describe("getDomainModules", () => {
       etapa: "Nuevo",
       temperatura: "Tibio",
       ultima_actividad: "2026-01-01",
+      whatsapp_confirmado: false,
       created_at: "2026-01-01",
     } as any);
     expect(await modules.contactos.findByNombreLike("in-memory")).toHaveLength(1);
     expect(await modules.contactos.findNecesitanSeguimiento(5)).toEqual([]);
     await modules.contactos.marcarActividad(contacto.id);
+    expect(await modules.contactos.findByTelefono("543515550000")).toMatchObject({
+      id: contacto.id,
+    });
+    expect(await modules.contactos.findByTelefono("0000000000")).toBeNull();
+    await modules.contactos.marcarWhatsappConfirmado(contacto.id);
+    expect((await modules.contactos.findByTelefono("543515550000"))?.whatsapp_confirmado).toBe(
+      true
+    );
 
     const propiedad = await modules.propiedades.create({
       contacto_propietario_id: null,
@@ -60,6 +69,9 @@ describe("getDomainModules", () => {
       tipo_propiedad: "Departamento",
       descripcion: null,
       precio: 1000,
+      moneda: "USD",
+      codigo: "COD-TEST",
+      dormitorios: 2,
       fecha_recibida: "2026-01-01",
       condiciones: null,
       estado: "Activa",
@@ -68,11 +80,18 @@ describe("getDomainModules", () => {
       created_at: "2026-01-01",
     } as any);
     expect(await modules.propiedades.findByDireccionLike("test address")).toHaveLength(1);
+    expect(await modules.propiedades.findByCodigo("COD-TEST")).toMatchObject({ id: propiedad.id });
+    expect(await modules.propiedades.findByCodigo("COD-NOPE")).toBeNull();
     const conTotales = await modules.propiedades.withTotales(propiedad);
     expect(conTotales.consultas_totales).toBe(1);
 
     const busqueda = await modules.busquedas.create({ contacto_id: contacto.id } as any);
     expect(await modules.busquedas.findByContactoId(contacto.id)).toContainEqual(busqueda);
+    expect(await modules.busquedas.findPendienteAprobadoByContactoId(contacto.id)).toBeNull();
+    await modules.busquedas.update(busqueda.id, { documento_aprobado: true } as any);
+    expect(
+      await modules.busquedas.findPendienteAprobadoByContactoId(contacto.id)
+    ).toMatchObject({ id: busqueda.id });
 
     const conversacion = await modules.conversaciones.create({ contacto_id: contacto.id } as any);
     expect(await modules.conversaciones.findByContactoId(contacto.id)).toContainEqual(conversacion);
@@ -97,5 +116,19 @@ describe("getDomainModules", () => {
     } as any);
     expect(await modules.ofertas.findByContactoId(contacto.id)).toContainEqual(oferta);
     expect(await modules.ofertas.findByPropiedadId(propiedad.id)).toContainEqual(oferta);
+
+    const lead = await modules.leadsPendientes.create({
+      token: "tok-in-memory",
+      canal: "Instagram",
+      psid: "psid-1",
+      codigo_propiedad: null,
+      usado: false,
+    } as any);
+    expect(await modules.leadsPendientes.findByToken("tok-in-memory")).toMatchObject({
+      id: lead.id,
+    });
+    expect(await modules.leadsPendientes.findByToken("tok-nope")).toBeNull();
+    await modules.leadsPendientes.marcarUsado(lead.id);
+    expect((await modules.leadsPendientes.findByToken("tok-in-memory"))?.usado).toBe(true);
   });
 });

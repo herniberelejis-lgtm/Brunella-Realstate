@@ -17,6 +17,10 @@ const ITEMS = [
 export function BottomNav() {
   const pathname = usePathname();
 
+  // The public client intake form is reached by leads from Instagram/Facebook ads — it must
+  // not expose Brunella's internal CRM navigation (contactos/propiedades) to them.
+  if (pathname.startsWith("/formulario")) return null;
+
   return (
     <nav
       aria-label="Navegación principal"

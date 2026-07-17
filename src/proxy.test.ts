@@ -20,6 +20,26 @@ describe("dashboard auth proxy", () => {
     expect(response.status).toBe(200);
   });
 
+  it("skips auth for the Meta webhook route", () => {
+    const request = new NextRequest("https://example.com/api/meta/webhook");
+    const response = proxy(request);
+    expect(response.status).toBe(200);
+  });
+
+  it("skips auth for the WhatsApp webhook route", () => {
+    const request = new NextRequest("https://example.com/api/whatsapp/webhook");
+    const response = proxy(request);
+    expect(response.status).toBe(200);
+  });
+
+  it("skips auth for the public client intake form and its sub-routes", () => {
+    for (const path of ["/formulario", "/formulario?tipo=comprador", "/formulario/confirmar"]) {
+      const request = new NextRequest(`https://example.com${path}`);
+      const response = proxy(request);
+      expect(response.status).toBe(200);
+    }
+  });
+
   it("rejects dashboard requests without credentials", () => {
     const request = new NextRequest("https://example.com/contactos");
     const response = proxy(request);
