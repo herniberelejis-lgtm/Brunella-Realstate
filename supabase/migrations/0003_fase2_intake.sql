@@ -12,11 +12,7 @@
 -- pg-mem has a bug where re-adding a constraint under a name it just dropped silently
 -- falls back to an internal auto-generated name instead of honoring the one given.
 
--- No CHECK on moneda: it's nullable (older/imported properties have no currency on file),
--- and pg-mem (the test-suite's Postgres emulator) has a bug where a nullable CHECK column
--- incorrectly rejects NULL rows that never violate it (real Postgres allows NULL through any
--- CHECK). Validated as ARS/USD at the Zod layer where the value actually originates instead.
-alter table propiedades add column moneda text;
+alter table propiedades add column moneda text check (moneda in ('ARS','USD'));
 alter table propiedades add column codigo text unique;
 alter table propiedades add column dormitorios integer;
 alter table propiedades drop constraint if exists propiedades_tipo_propiedad_check;
@@ -24,8 +20,7 @@ alter table propiedades drop constraint if exists propiedades_constraint_1; -- p
 alter table propiedades add constraint propiedades_tipo_propiedad_check_v2
   check (tipo_propiedad in ('Departamento','Casa','PH','Lote','Local/Oficina'));
 
--- Same no-CHECK reasoning as propiedades.moneda above.
-alter table busquedas add column moneda text;
+alter table busquedas add column moneda text check (moneda in ('ARS','USD'));
 alter table busquedas add column presupuesto_min numeric;
 alter table busquedas add column presupuesto_max numeric;
 alter table busquedas add column documento_aprobado boolean not null default false;

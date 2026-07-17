@@ -17,7 +17,7 @@ async function crearContacto(pool: Pool, nombre: string) {
 
 async function crearPropiedad(pool: Pool, direccion: string) {
   const result = await pool.query(
-    "insert into propiedades (direccion, tipo_propiedad, precio) values ($1, 'Departamento', 100000) returning *",
+    "insert into propiedades (direccion, tipo_propiedad, precio, moneda) values ($1, 'Departamento', 100000, 'USD') returning *",
     [direccion]
   );
   return result.rows[0];
