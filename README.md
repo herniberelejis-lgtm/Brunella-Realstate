@@ -15,6 +15,27 @@ npm run dev
 Sin `DATABASE_URL` configurado, la app corre con datos de ejemplo en memoria — anda a
 `http://localhost:3000/contactos` y `http://localhost:3000/propiedades` para verla funcionando.
 
+## Variables de entorno
+
+| Variable | Descripción |
+|----------|-------------|
+| `DATABASE_URL` | Connection string de Postgres (Supabase → Project Settings → Database → Connection string, "URI") |
+| `TELEGRAM_BOT_TOKEN` | Token del bot de Telegram (desde @BotFather) |
+| `TELEGRAM_WEBHOOK_SECRET` | String arbitrario para autenticar el webhook de Telegram |
+| `TELEGRAM_ADMIN_CHAT_ID` | Chat ID de Brunella en Telegram (autorización única para procesar notas de voz) |
+| `GROQ_API_KEY` | API Key de Groq (console.groq.com → API Keys) |
+| `CRON_SECRET` | String aleatorio para autenticar los crons de Vercel |
+| `DASHBOARD_USER` | Usuario para basic-auth del dashboard (ej. `brunella`) |
+| `DASHBOARD_PASSWORD` | Contraseña para basic-auth del dashboard |
+| `META_APP_SECRET` | App Secret de la app de Meta for Developers (Messenger + Instagram + WhatsApp comparten la misma app) |
+| `META_VERIFY_TOKEN` | String arbitrario elegido por vos, usado para verificar los tres webhooks de Meta al configurarlos |
+| `MESSENGER_PAGE_ACCESS_TOKEN` | Token de acceso de la Página de Facebook conectada a la app de Meta |
+| `INSTAGRAM_ACCESS_TOKEN` | Token de acceso de la cuenta de Instagram conectada a la app de Meta |
+| `WHATSAPP_ACCESS_TOKEN` | Token de acceso del número de WhatsApp Business (Cloud API) |
+| `WHATSAPP_PHONE_NUMBER_ID` | ID del número de teléfono de WhatsApp Business (Graph API, no el número en sí) |
+| `WHATSAPP_BUSINESS_NUMBER` | El número de WhatsApp de Brunella en formato internacional sin `+` (ej. `5493511234567`), usado para armar el link `wa.me` |
+| `APP_BASE_URL` | URL pública de la app deployada (ej. `https://brunella-realstate.vercel.app`), usada para armar el link del formulario que se manda por Messenger/Instagram |
+
 ## Puesta en producción — pasos manuales pendientes
 
 1. **Supabase (base de datos gratis)**
@@ -55,7 +76,30 @@ Sin `DATABASE_URL` configurado, la app corre con datos de ejemplo en memoria —
      coincide con el valor cargado).
    - Deploy.
 
-6. **Excel histórico de propiedades**
+## Fase 2 — Configurar Messenger, Instagram y WhatsApp
+
+Esto requiere una única app en Meta for Developers, conectada a la Página de Facebook, la
+cuenta de Instagram y el número de WhatsApp Business de Brunella. Una vez creada esa app:
+
+1. En **Webhooks**, agregá dos suscripciones apuntando a esta app:
+   - `https://<tu-dominio>/api/meta/webhook` para Messenger e Instagram (eventos
+     `messages`, `messaging_referrals`)
+   - `https://<tu-dominio>/api/whatsapp/webhook` para WhatsApp (eventos `messages`)
+   - En ambas, usá el mismo valor de `META_VERIFY_TOKEN` que configuraste como variable de
+     entorno.
+2. Copiá el **App Secret** de la app a `META_APP_SECRET`.
+3. Generá un token de acceso de la Página y pegalo en `MESSENGER_PAGE_ACCESS_TOKEN`.
+4. Generá un token de acceso de Instagram (misma app, cuenta de Instagram conectada a la
+   Página) y pegalo en `INSTAGRAM_ACCESS_TOKEN`.
+5. En el producto WhatsApp de la misma app, agregá el número de negocio, copiá su
+   `Phone Number ID` a `WHATSAPP_PHONE_NUMBER_ID`, generá un token de acceso permanente y
+   pegalo en `WHATSAPP_ACCESS_TOKEN`.
+6. Al armar un anuncio de Click-to-Messenger o Click-to-Instagram en Meta Ads Manager para
+   promocionar una propiedad puntual, pegá el **código corto de esa propiedad** (visible en su
+   ficha en el CRM, botón "Generar código" si todavía no tiene uno) en el campo `ref` del
+   anuncio.
+
+7. **Excel histórico de propiedades**
    - Conseguir el archivo real de Brunella.
    - Confirmar los nombres de columna reales contra los que asume
      `scripts/import-excel.ts` (`fecha`, `direccion`, `tipo`, `descripcion`, `precio`,
