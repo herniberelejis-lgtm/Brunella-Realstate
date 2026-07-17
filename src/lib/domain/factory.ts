@@ -61,6 +61,10 @@ function buildInMemoryModules(): DomainModules {
       ...busquedasTable,
       findByContactoId: async (id: string) =>
         (await busquedasTable.list()).filter((b: any) => b.contacto_id === id),
+      findPendienteAprobadoByContactoId: async (id: string) =>
+        (await busquedasTable.list()).find(
+          (b: any) => b.contacto_id === id && b.documento_aprobado && !b.documento_enviado
+        ) ?? null,
     } as any,
     conversaciones: {
       ...conversacionesTable,

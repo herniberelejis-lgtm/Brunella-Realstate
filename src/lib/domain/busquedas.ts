@@ -25,5 +25,14 @@ export function createBusquedasModule(pool: Pool) {
     async findByContactoId(contactoId: string): Promise<Busqueda[]> {
       return repo.list({ contacto_id: contactoId } as Partial<Busqueda>);
     },
+    async findPendienteAprobadoByContactoId(contactoId: string): Promise<Busqueda | null> {
+      const result = await pool.query(
+        `select * from busquedas
+         where contacto_id = $1 and documento_aprobado = true and documento_enviado = false
+         order by created_at desc limit 1`,
+        [contactoId]
+      );
+      return result.rows[0] ?? null;
+    },
   };
 }
