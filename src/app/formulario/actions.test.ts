@@ -131,11 +131,45 @@ describe("submitCompradorAction", () => {
     process.env.TELEGRAM_ADMIN_CHAT_ID = "999";
     contactosFindByTelefono.mockResolvedValue(null);
     contactosCreate.mockResolvedValue({ id: "contacto-3", nombre: "Marcos", telefono: "54935111" });
-    busquedasCreate.mockResolvedValue({
+    const nuevaBusqueda = {
       id: "busqueda-1",
       contacto_id: "contacto-3",
+      tipo_operacion: "Compra",
       tipo_propiedad: "PH",
-    });
+      presupuesto_min: null,
+      presupuesto_max: null,
+      moneda: null,
+      zona: null,
+      dormitorios: null,
+      otros_requisitos: null,
+      activa: true,
+      documento_aprobado: false,
+      documento_enviado: false,
+      created_at: "2026-01-01T00:00:00Z",
+    };
+    busquedasCreate.mockResolvedValue(nuevaBusqueda);
+    // Exercise the "matches found" branch (not the empty-array default): one active PH
+    // property with a photo, so notificarBrunellaCompatibilidad takes its media-group path.
+    propiedadesList.mockResolvedValue([
+      {
+        id: "propiedad-1",
+        contacto_propietario_id: null,
+        direccion: "Nueva Córdoba 500",
+        tipo_propiedad: "PH",
+        descripcion: null,
+        precio: 90000,
+        moneda: "USD",
+        codigo: null,
+        dormitorios: 2,
+        fecha_recibida: "2026-01-01",
+        condiciones: null,
+        estado: "Activa",
+        consultas_historicas: 0,
+        visitas_historicas: 0,
+        imagenes: "https://example.com/foto.jpg",
+        created_at: "2026-01-01T00:00:00Z",
+      },
+    ]);
 
     await expect(
       submitCompradorAction(
@@ -149,7 +183,42 @@ describe("submitCompradorAction", () => {
       )
     ).rejects.toThrow("REDIRECT");
 
-    expect(sendMessage).toHaveBeenCalled();
+    expect(sendMediaGroup).toHaveBeenCalledWith(
+      999,
+      expect.arrayContaining([expect.objectContaining({ url: "https://example.com/foto.jpg" })])
+    );
+    expect(sendMessage).toHaveBeenCalledWith(
+      999,
+      expect.stringContaining("Nueva Córdoba 500"),
+      expect.objectContaining({
+        reply_markup: {
+          inline_keyboard: [[{ text: "Aprobar y enviar", callback_data: "aprobar_busqueda:busqueda-1" }]],
+        },
+      })
+    );
+  });
+
+  it("does not let a Telegram notification failure break the client's submission", async () => {
+    process.env.TELEGRAM_ADMIN_CHAT_ID = "999";
+    contactosFindByTelefono.mockResolvedValue(null);
+    contactosCreate.mockResolvedValue({ id: "contacto-5", nombre: "Lucía", telefono: "54935113" });
+    busquedasCreate.mockResolvedValue({ id: "busqueda-2", contacto_id: "contacto-5" });
+    propiedadesList.mockResolvedValue([]);
+    sendMessage.mockRejectedValueOnce(new Error("Telegram is down"));
+
+    await expect(
+      submitCompradorAction(
+        null,
+        fd({
+          nombre: "Lucía",
+          telefono: "54935113",
+          tipo_operacion: "Compra",
+          tipo_propiedad: "PH",
+        })
+      )
+    ).rejects.toThrow("REDIRECT");
+
+    expect(redirect).toHaveBeenCalledWith("/formulario/confirmar?c=contacto-5");
   });
 });
 

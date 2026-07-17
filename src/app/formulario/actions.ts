@@ -31,7 +31,7 @@ export async function submitCompradorAction(
   }
   const data = result.data;
 
-  const { contactos, busquedas, consultas, leadsPendientes } = getDomainModules();
+  const { contactos, busquedas, consultas, leadsPendientes, propiedades } = getDomainModules();
   const { fuente, propiedadId, leadId } = await resolveAtribucion(token);
 
   let contacto = await contactos.findByTelefono(data.telefono);
@@ -73,15 +73,22 @@ export async function submitCompradorAction(
 
   const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
   if (adminChatId) {
-    const source = createPortfolioPropioSource(getDomainModules().propiedades);
-    const matches = await source.buscar(nuevaBusqueda);
-    await notificarBrunellaCompatibilidad(
-      { sendMediaGroup, sendMessage },
-      Number(adminChatId),
-      contacto,
-      nuevaBusqueda,
-      matches
-    );
+    // The lead's data is already saved at this point — a Telegram/matching failure here
+    // (API outage, missing token) must not turn a successful submission into an error page
+    // for the client. Log and continue, same posture as the Telegram webhook route.
+    try {
+      const source = createPortfolioPropioSource(propiedades);
+      const matches = await source.buscar(nuevaBusqueda);
+      await notificarBrunellaCompatibilidad(
+        { sendMediaGroup, sendMessage },
+        Number(adminChatId),
+        contacto,
+        nuevaBusqueda,
+        matches
+      );
+    } catch (error) {
+      console.error("Failed to notify Brunella of new búsqueda", error);
+    }
   }
 
   redirect(`/formulario/confirmar?c=${contacto.id}`);
@@ -131,10 +138,14 @@ export async function submitPropietarioAction(
 
   const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
   if (adminChatId) {
-    await sendMessage(
-      Number(adminChatId),
-      `Nueva propiedad cargada por ${contacto.nombre} (${data.que_quiere_hacer}): ${data.direccion}. Revisala en el CRM.`
-    );
+    try {
+      await sendMessage(
+        Number(adminChatId),
+        `Nueva propiedad cargada por ${contacto.nombre} (${data.que_quiere_hacer}): ${data.direccion}. Revisala en el CRM.`
+      );
+    } catch (error) {
+      console.error("Failed to notify Brunella of new propiedad", error);
+    }
   }
 
   redirect(`/formulario/confirmar?c=${contacto.id}`);
