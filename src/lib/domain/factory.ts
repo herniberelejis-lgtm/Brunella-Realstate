@@ -6,6 +6,7 @@ import { createConversacionesModule } from "./conversaciones";
 import { createMuestrasModule } from "./muestras";
 import { createConsultasModule } from "./consultas";
 import { createOfertasModule } from "./ofertas";
+import { createLeadsPendientesModule } from "./leadsPendientes";
 import { createInMemoryTable } from "./inMemoryStore";
 import { CONTACTOS_SEED, PROPIEDADES_SEED } from "./seedData";
 
@@ -17,6 +18,7 @@ export type DomainModules = {
   muestras: ReturnType<typeof createMuestrasModule>;
   consultas: ReturnType<typeof createConsultasModule>;
   ofertas: ReturnType<typeof createOfertasModule>;
+  leadsPendientes: ReturnType<typeof createLeadsPendientesModule>;
 };
 
 let cachedInMemoryModules: DomainModules | undefined;
@@ -29,6 +31,7 @@ function buildInMemoryModules(): DomainModules {
   const muestrasTable = createInMemoryTable([]);
   const consultasTable = createInMemoryTable([]);
   const ofertasTable = createInMemoryTable([]);
+  const leadsPendientesTable = createInMemoryTable([]);
 
   return {
     contactos: {
@@ -83,6 +86,15 @@ function buildInMemoryModules(): DomainModules {
       findByPropiedadId: async (id: string) =>
         (await ofertasTable.list()).filter((o: any) => o.propiedad_id === id),
     } as any,
+    leadsPendientes: {
+      ...leadsPendientesTable,
+      findByToken: async (token: string) =>
+        (await leadsPendientesTable.list()).find((l: any) => l.token === token) ?? null,
+      marcarUsado: async (id: string) => {
+        const item = await leadsPendientesTable.findById(id);
+        if (item) await leadsPendientesTable.update(id, { usado: true } as any);
+      },
+    } as any,
   };
 }
 
@@ -103,5 +115,6 @@ export function getDomainModules(): DomainModules {
     muestras: createMuestrasModule(pool),
     consultas: createConsultasModule(pool),
     ofertas: createOfertasModule(pool),
+    leadsPendientes: createLeadsPendientesModule(pool),
   };
 }
