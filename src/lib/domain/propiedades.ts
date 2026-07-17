@@ -39,6 +39,11 @@ export function createPropiedadesModule(pool: Pool) {
       return todas.filter((p) => normalizeText(p.direccion).includes(normalizedQuery));
     },
 
+    async findByCodigo(codigo: string): Promise<Propiedad | null> {
+      const result = await pool.query("select * from propiedades where codigo = $1", [codigo]);
+      return result.rows[0] ?? null;
+    },
+
     async withTotales(propiedad: Propiedad): Promise<PropiedadConTotales> {
       const [consultasResult, muestrasResult] = await Promise.all([
         pool.query("select count(*)::int as total from consultas where propiedad_id = $1", [

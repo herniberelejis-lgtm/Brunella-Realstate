@@ -49,6 +49,8 @@ function buildInMemoryModules(): DomainModules {
         (await propiedadesTable.list()).filter((p) =>
           p.direccion.toLowerCase().includes(direccion.toLowerCase())
         ),
+      findByCodigo: async (codigo: string) =>
+        (await propiedadesTable.list()).find((p: any) => p.codigo === codigo) ?? null,
       withTotales: async (propiedad: any) => ({
         ...propiedad,
         consultas_totales: propiedad.consultas_historicas,
