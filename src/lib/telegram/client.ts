@@ -46,6 +46,27 @@ export async function downloadFile(url: string): Promise<Buffer> {
   return Buffer.from(arrayBuffer);
 }
 
+export async function sendMediaGroup(
+  chatId: number,
+  photos: { url: string; caption?: string }[]
+): Promise<void> {
+  const response = await fetch(apiUrl("sendMediaGroup"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      media: photos.map((p) => ({
+        type: "photo",
+        media: p.url,
+        ...(p.caption ? { caption: p.caption } : {}),
+      })),
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Telegram sendMediaGroup failed (${response.status})`);
+  }
+}
+
 export function verifyWebhookSecret(headerValue: string | undefined | null): boolean {
   const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
   if (!expected || !headerValue) return false;

@@ -4,6 +4,7 @@ import {
   getFileDownloadUrl,
   downloadFile,
   verifyWebhookSecret,
+  sendMediaGroup,
 } from "./client";
 
 describe("telegram client", () => {
@@ -74,5 +75,33 @@ describe("telegram client", () => {
     await expect(downloadFile("https://example.com/file.oga")).rejects.toThrow(
       /File download failed/
     );
+  });
+
+  it("sends a Telegram media group with the given photos", async () => {
+    (fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
+
+    await sendMediaGroup(123, [
+      { url: "https://example.com/a.jpg", caption: "Depto A" },
+      { url: "https://example.com/b.jpg" },
+    ]);
+
+    const [url, options] = (fetch as any).mock.calls[0];
+    expect(url).toBe("https://api.telegram.org/bottest-token/sendMediaGroup");
+    const body = JSON.parse(options.body);
+    expect(body.chat_id).toBe(123);
+    expect(body.media).toHaveLength(2);
+    expect(body.media[0]).toEqual({
+      type: "photo",
+      media: "https://example.com/a.jpg",
+      caption: "Depto A",
+    });
+    expect(body.media[1]).toEqual({ type: "photo", media: "https://example.com/b.jpg" });
+  });
+
+  it("throws when sendMediaGroup fails", async () => {
+    (fetch as any).mockResolvedValue({ ok: false, status: 400 });
+    await expect(
+      sendMediaGroup(123, [{ url: "https://example.com/a.jpg" }])
+    ).rejects.toThrow(/Telegram sendMediaGroup failed/);
   });
 });
