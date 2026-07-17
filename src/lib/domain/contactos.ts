@@ -21,6 +21,7 @@ export type Contacto = {
     | "Inactivo";
   temperatura: "Frio" | "Tibio" | "Caliente";
   ultima_actividad: string;
+  whatsapp_confirmado: boolean;
   created_at: string;
 };
 
@@ -53,6 +54,19 @@ export function createContactosModule(pool: Pool) {
     async marcarActividad(contactoId: string): Promise<void> {
       await pool.query(
         "update contactos set ultima_actividad = now() where id = $1",
+        [contactoId]
+      );
+    },
+
+    async findByTelefono(telefono: string): Promise<Contacto | null> {
+      const normalizado = telefono.replace(/\D/g, "");
+      const todos = await this.list();
+      return todos.find((c) => c.telefono?.replace(/\D/g, "") === normalizado) ?? null;
+    },
+
+    async marcarWhatsappConfirmado(contactoId: string): Promise<void> {
+      await pool.query(
+        "update contactos set whatsapp_confirmado = true where id = $1",
         [contactoId]
       );
     },

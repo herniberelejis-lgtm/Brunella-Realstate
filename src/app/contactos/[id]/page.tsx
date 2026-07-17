@@ -79,7 +79,8 @@ export default async function ContactoDetailPage({
           <h2 className="text-sm font-semibold text-slate-700">Búsqueda activa</h2>
           {busquedasDelContacto.map((b: Busqueda) => (
             <p key={b.id} className="mt-1 text-sm text-slate-600">
-              {b.tipo_operacion} · {b.tipo_propiedad} · {b.zona} · hasta ${b.presupuesto}
+              {b.tipo_operacion} · {b.tipo_propiedad} · {b.zona} · {b.moneda ?? ""}{" "}
+              {b.presupuesto_min ?? "?"}-{b.presupuesto_max ?? "?"}
             </p>
           ))}
         </section>

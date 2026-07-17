@@ -15,6 +15,7 @@ export const CONTACTOS_SEED: Contacto[] = [
     etapa: "Mostrando propiedades",
     temperatura: "Caliente",
     ultima_actividad: now,
+    whatsapp_confirmado: false,
     created_at: now,
   },
   {
@@ -28,6 +29,7 @@ export const CONTACTOS_SEED: Contacto[] = [
     etapa: "Negociando",
     temperatura: "Tibio",
     ultima_actividad: now,
+    whatsapp_confirmado: false,
     created_at: now,
   },
 ];
@@ -40,6 +42,9 @@ export const PROPIEDADES_SEED: Propiedad[] = [
     tipo_propiedad: "Departamento",
     descripcion: "2 dormitorios, balcón",
     precio: 120000,
+    moneda: "USD",
+    codigo: null,
+    dormitorios: 2,
     fecha_recibida: now,
     condiciones: "Exclusividad 90 días",
     estado: "Activa",

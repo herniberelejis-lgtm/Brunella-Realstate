@@ -36,7 +36,9 @@ describe("evento domain modules", () => {
     await busquedas.create({
       contacto_id: contacto.id,
       tipo_operacion: "Compra",
-      presupuesto: 100000,
+      presupuesto_min: 80000,
+      presupuesto_max: 100000,
+      moneda: "USD",
       zona: "Nueva Córdoba",
       tipo_propiedad: "Departamento",
       dormitorios: 2,

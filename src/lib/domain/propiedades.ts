@@ -6,9 +6,12 @@ export type Propiedad = {
   id: string;
   contacto_propietario_id: string | null;
   direccion: string;
-  tipo_propiedad: "Departamento" | "Casa" | "Lote" | "Local/Oficina";
+  tipo_propiedad: "Departamento" | "Casa" | "PH" | "Lote" | "Local/Oficina";
   descripcion: string | null;
   precio: number | null;
+  moneda: "ARS" | "USD" | null;
+  codigo: string | null;
+  dormitorios: number | null;
   fecha_recibida: string;
   condiciones: string | null;
   estado: "Activa" | "Vendida" | "Retirada";

@@ -5,12 +5,16 @@ export type Busqueda = {
   id: string;
   contacto_id: string;
   tipo_operacion: "Compra" | "Alquiler" | "Inversion";
-  presupuesto: number | null;
+  presupuesto_min: number | null;
+  presupuesto_max: number | null;
+  moneda: "ARS" | "USD" | null;
   zona: string | null;
-  tipo_propiedad: "Departamento" | "Casa" | "Lote" | "Local/Oficina" | null;
+  tipo_propiedad: "Departamento" | "Casa" | "PH" | "Lote" | "Local/Oficina" | null;
   dormitorios: number | null;
   otros_requisitos: string | null;
   activa: boolean;
+  documento_aprobado: boolean;
+  documento_enviado: boolean;
   created_at: string;
 };
 

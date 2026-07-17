@@ -7,7 +7,7 @@ export type Consulta = {
   contacto_id: string | null;
   fecha: string;
   canal: "Instagram" | "Facebook" | "WhatsApp" | "Zonaprop" | "Grupo Banker" | "Otro";
-  origen: "nota_de_voz" | "manual";
+  origen: "nota_de_voz" | "manual" | "formulario_cliente";
   created_at: string;
 };
 
