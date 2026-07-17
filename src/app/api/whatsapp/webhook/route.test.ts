@@ -97,4 +97,32 @@ describe("POST /api/whatsapp/webhook", () => {
     expect(response.status).toBe(200);
     expect(marcarWhatsappConfirmado).not.toHaveBeenCalled();
   });
+
+  it("rejects requests with an invalid signature", async () => {
+    const request = new NextRequest("https://example.com/api/whatsapp/webhook", {
+      method: "POST",
+      headers: { "x-hub-signature-256": "sha256=invalid" },
+      body: JSON.stringify({ entry: [] }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(401);
+    expect(marcarWhatsappConfirmado).not.toHaveBeenCalled();
+  });
+
+  it("ignores a validly-signed but malformed JSON body instead of throwing", async () => {
+    const rawBody = "not json";
+    const signature = "sha256=" + createHmac("sha256", "test-secret").update(rawBody).digest("hex");
+    const request = new NextRequest("https://example.com/api/whatsapp/webhook", {
+      method: "POST",
+      headers: { "x-hub-signature-256": signature },
+      body: rawBody,
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(marcarWhatsappConfirmado).not.toHaveBeenCalled();
+  });
 });

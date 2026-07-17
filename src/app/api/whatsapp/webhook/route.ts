@@ -38,7 +38,14 @@ export async function POST(request: NextRequest): Promise<Response> {
     return NextResponse.json({ error: "invalid signature" }, { status: 401 });
   }
 
-  const parsed = whatsappEventSchema.safeParse(JSON.parse(rawBody));
+  let body: unknown;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ ok: true });
+  }
+
+  const parsed = whatsappEventSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ ok: true });
   }
