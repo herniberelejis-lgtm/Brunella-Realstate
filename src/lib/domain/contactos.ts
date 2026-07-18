@@ -1,6 +1,7 @@
 import type { Pool } from "pg";
 import { createRepository } from "../db/repository";
 import { normalizeText } from "../text/normalize";
+import { phoneMatches } from "../text/phone";
 
 export type Contacto = {
   id: string;
@@ -59,9 +60,8 @@ export function createContactosModule(pool: Pool) {
     },
 
     async findByTelefono(telefono: string): Promise<Contacto | null> {
-      const normalizado = telefono.replace(/\D/g, "");
       const todos = await this.list();
-      return todos.find((c) => c.telefono?.replace(/\D/g, "") === normalizado) ?? null;
+      return todos.find((c) => phoneMatches(c.telefono, telefono)) ?? null;
     },
 
     async marcarWhatsappConfirmado(contactoId: string): Promise<void> {

@@ -9,6 +9,7 @@ import { createOfertasModule } from "./ofertas";
 import { createLeadsPendientesModule } from "./leadsPendientes";
 import { createInMemoryTable } from "./inMemoryStore";
 import { CONTACTOS_SEED, PROPIEDADES_SEED } from "./seedData";
+import { phoneMatches } from "../text/phone";
 
 export type DomainModules = {
   contactos: ReturnType<typeof createContactosModule>;
@@ -40,14 +41,9 @@ function buildInMemoryModules(): DomainModules {
         (await contactosTable.list()).filter((c) =>
           c.nombre.toLowerCase().includes(nombre.toLowerCase())
         ),
-      findByTelefono: async (telefono: string) => {
-        const normalizado = telefono.replace(/\D/g, "");
-        return (
-          (await contactosTable.list()).find(
-            (c: any) => c.telefono?.replace(/\D/g, "") === normalizado
-          ) ?? null
-        );
-      },
+      findByTelefono: async (telefono: string) =>
+        (await contactosTable.list()).find((c: any) => phoneMatches(c.telefono, telefono)) ??
+        null,
       findNecesitanSeguimiento: async () => [],
       marcarActividad: async () => {},
       marcarWhatsappConfirmado: async (id: string) => {
