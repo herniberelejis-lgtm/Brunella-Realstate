@@ -8,9 +8,12 @@ const optionalNumber = z.preprocess(
 
 const TIPOS_PROPIEDAD = ["Departamento", "Casa", "PH", "Lote", "Local/Oficina"] as const;
 
+const optionalEmail = z.preprocess(blankToNull, z.string().trim().email().nullable().default(null));
+
 const compradorSchema = z.object({
   nombre: z.string().trim().min(1, "El nombre es obligatorio"),
   telefono: z.string().trim().min(6, "El WhatsApp es obligatorio"),
+  email: optionalEmail,
   tipo_operacion: z.enum(["Compra", "Alquiler", "Inversion"]),
   tipo_propiedad: z.enum(TIPOS_PROPIEDAD),
   zona: z.preprocess(blankToNull, z.string().nullable().default(null)),
@@ -24,6 +27,7 @@ const compradorSchema = z.object({
 const propietarioSchema = z.object({
   nombre: z.string().trim().min(1, "El nombre es obligatorio"),
   telefono: z.string().trim().min(6, "El WhatsApp es obligatorio"),
+  email: optionalEmail,
   que_quiere_hacer: z.enum(["Vender", "Alquilar", "Alquiler temporario"]),
   direccion: z.string().trim().min(1, "La dirección es obligatoria"),
   tipo_propiedad: z.enum(TIPOS_PROPIEDAD),

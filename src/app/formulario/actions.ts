@@ -39,6 +39,7 @@ export async function submitCompradorAction(
     contacto = await contactos.create({
       nombre: data.nombre,
       telefono: data.telefono,
+      email: data.email,
       fuente,
       tipo: "Comprador",
       etapa: "Buscando",
@@ -112,6 +113,7 @@ export async function submitPropietarioAction(
     contacto = await contactos.create({
       nombre: data.nombre,
       telefono: data.telefono,
+      email: data.email,
       fuente,
       tipo: "Propietario",
       etapa: "Nuevo",
