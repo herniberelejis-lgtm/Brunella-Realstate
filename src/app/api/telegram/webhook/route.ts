@@ -7,7 +7,8 @@ import {
   sendMessage,
 } from "@/lib/telegram/client";
 import { processVoiceNote } from "@/lib/bot/processVoiceNote";
-import { transcribeAudio, extractStructuredData } from "@/lib/groq/client";
+import { importarConversacionWhatsApp } from "@/lib/bot/importarConversacion";
+import { transcribeAudio, extractStructuredData, extractConversacionImportada } from "@/lib/groq/client";
 import { getPool } from "@/lib/db/pool";
 import { createContactosModule } from "@/lib/domain/contactos";
 import { createPropiedadesModule } from "@/lib/domain/propiedades";
@@ -27,7 +28,9 @@ const telegramUpdateSchema = z.object({
     .object({
       chat: z.object({ id: z.number() }),
       text: z.string().optional(),
+      caption: z.string().optional(),
       voice: z.object({ file_id: z.string() }).optional(),
+      document: z.object({ file_id: z.string() }).optional(),
     })
     .optional(),
   callback_query: z
@@ -44,6 +47,19 @@ function isFromAdmin(chatId: number): boolean {
   const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
   if (!adminChatId) return false;
   return chatId === Number(adminChatId);
+}
+
+// Expects "Nombre, Teléfono" (or "Nombre; Teléfono") as the caption on an imported WhatsApp
+// export — the .txt itself rarely carries a phone number, only the display name from the
+// sender's own contact list, so the admin has to supply it explicitly.
+function parseImportCaption(caption: string): { nombre: string; telefono: string } | null {
+  const separator = caption.includes(";") ? ";" : caption.includes(",") ? "," : null;
+  if (!separator) return null;
+  const [nombrePart, telefonoPart] = caption.split(separator);
+  const nombre = nombrePart?.trim();
+  const telefono = telefonoPart?.trim();
+  if (!nombre || !telefono) return null;
+  return { nombre, telefono };
 }
 
 export async function POST(request: NextRequest) {
@@ -81,8 +97,46 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const voice = parsed.data.message?.voice;
   const chatId = parsed.data.message?.chat.id;
+  const document = parsed.data.message?.document;
+
+  if (document && chatId && isFromAdmin(chatId)) {
+    const parsedCaption = parseImportCaption(parsed.data.message?.caption ?? "");
+    if (!parsedCaption) {
+      await sendMessage(
+        chatId,
+        "Para importar una conversación, mandá el .txt con este formato en el texto del mensaje: Nombre, Teléfono (ej: Juan Pérez, 3511234567)."
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    try {
+      const fileUrl = await getFileDownloadUrl(document.file_id);
+      const fileBuffer = await downloadFile(fileUrl);
+      const texto = fileBuffer.toString("utf-8");
+
+      const pool = getPool();
+      const { respuesta } = await importarConversacionWhatsApp(
+        {
+          extractConversacionImportada,
+          contactos: createContactosModule(pool),
+          conversaciones: createConversacionesModule(pool),
+        },
+        texto,
+        parsedCaption.nombre,
+        parsedCaption.telefono
+      );
+
+      await sendMessage(chatId, respuesta);
+    } catch (error) {
+      console.error("Failed to import WhatsApp conversation", error);
+      await sendMessage(chatId, "No pude procesar ese archivo. Probá de nuevo en un rato.");
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
+  const voice = parsed.data.message?.voice;
 
   // This bot is for the agent's own internal note-taking, not a public assistant — silently
   // drop anything from a chat that isn't hers, rather than processing (and paying Groq for)

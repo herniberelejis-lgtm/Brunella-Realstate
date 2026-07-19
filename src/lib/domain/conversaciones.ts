@@ -8,7 +8,7 @@ export type Conversacion = {
   canal: "Llamada" | "WhatsApp" | "Instagram DM" | "Presencial" | "Otro";
   resumen: string;
   proximo_paso: string | null;
-  origen: "nota_de_voz" | "manual";
+  origen: "nota_de_voz" | "manual" | "importado_whatsapp";
   created_at: string;
 };
 

@@ -10,11 +10,15 @@ vi.mock("@/lib/telegram/client", () => ({
 vi.mock("@/lib/bot/processVoiceNote", () => ({
   processVoiceNote: vi.fn().mockResolvedValue({ respuesta: "✅ Guardé todo" }),
 }));
+vi.mock("@/lib/bot/importarConversacion", () => ({
+  importarConversacionWhatsApp: vi.fn().mockResolvedValue({ respuesta: "✅ Importé la conversación" }),
+}));
 vi.mock("@/lib/db/pool", () => ({ getPool: vi.fn().mockReturnValue({}) }));
 
 import { POST } from "./route";
 import { verifyWebhookSecret, sendMessage } from "@/lib/telegram/client";
 import { processVoiceNote } from "@/lib/bot/processVoiceNote";
+import { importarConversacionWhatsApp } from "@/lib/bot/importarConversacion";
 
 function buildRequest(body: unknown, secretHeader?: string) {
   return new NextRequest("https://example.com/api/telegram/webhook", {
@@ -98,6 +102,61 @@ describe("POST /api/telegram/webhook", () => {
 
     expect(response.status).toBe(200);
     expect(sendMessage).toHaveBeenCalledWith(1, expect.stringMatching(/no pude procesar/i));
+  });
+
+  it("imports a WhatsApp conversation document with a valid 'Nombre, Teléfono' caption", async () => {
+    const response = await POST(
+      buildRequest(
+        {
+          message: {
+            chat: { id: 1 },
+            document: { file_id: "doc123" },
+            caption: "Juan Pérez, 3511234567",
+          },
+        },
+        "secret"
+      )
+    );
+
+    expect(response.status).toBe(200);
+    expect(importarConversacionWhatsApp).toHaveBeenCalledWith(
+      expect.anything(),
+      "audio", // downloadFile mock returns Buffer.from("audio") regardless of file type
+      "Juan Pérez",
+      "3511234567"
+    );
+    expect(sendMessage).toHaveBeenCalledWith(1, expect.stringContaining("Importé"));
+  });
+
+  it("asks for the correct caption format instead of importing when the caption is missing or malformed", async () => {
+    const response = await POST(
+      buildRequest(
+        { message: { chat: { id: 1 }, document: { file_id: "doc123" }, caption: "sin formato" } },
+        "secret"
+      )
+    );
+
+    expect(response.status).toBe(200);
+    expect(importarConversacionWhatsApp).not.toHaveBeenCalled();
+    expect(sendMessage).toHaveBeenCalledWith(1, expect.stringMatching(/nombre, tel[ée]fono/i));
+  });
+
+  it("silently ignores documents from a chat id other than the configured admin", async () => {
+    const response = await POST(
+      buildRequest(
+        {
+          message: {
+            chat: { id: 42 },
+            document: { file_id: "doc123" },
+            caption: "Juan Pérez, 3511234567",
+          },
+        },
+        "secret"
+      )
+    );
+
+    expect(response.status).toBe(200);
+    expect(importarConversacionWhatsApp).not.toHaveBeenCalled();
   });
 
   it("ignores malformed update bodies instead of throwing", async () => {
