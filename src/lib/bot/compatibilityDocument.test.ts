@@ -83,14 +83,36 @@ describe("notificarBrunellaCompatibilidad", () => {
     );
   });
 
-  it("sends a text-only message explaining there are no matches yet", async () => {
+  it("sends a text-only message with the full búsqueda details when there are no matches yet", async () => {
     const sendMediaGroup = vi.fn().mockResolvedValue(undefined);
     const sendMessage = vi.fn().mockResolvedValue(undefined);
 
     await notificarBrunellaCompatibilidad({ sendMediaGroup, sendMessage }, 42, contacto, busqueda, []);
 
     expect(sendMediaGroup).not.toHaveBeenCalled();
-    expect(sendMessage).toHaveBeenCalledWith(42, expect.stringContaining("Sin matches"));
+    const [, mensaje] = sendMessage.mock.calls[0];
+    expect(mensaje).toContain("Sin matches");
+    expect(mensaje).toContain("Juan");
+    expect(mensaje).toContain("Nueva Córdoba");
+    expect(mensaje).toContain("Departamento");
+    expect(mensaje).toContain("50000");
+  });
+
+  it("includes the full búsqueda details even when matches are found", async () => {
+    const sendMediaGroup = vi.fn().mockResolvedValue(undefined);
+    const sendMessage = vi.fn().mockResolvedValue(undefined);
+
+    await notificarBrunellaCompatibilidad(
+      { sendMediaGroup, sendMessage },
+      42,
+      contacto,
+      busqueda,
+      [makePropiedad({})]
+    );
+
+    const [, mensaje] = sendMessage.mock.calls[0];
+    expect(mensaje).toContain("Nueva Córdoba");
+    expect(mensaje).toContain(contacto.telefono!);
   });
 });
 

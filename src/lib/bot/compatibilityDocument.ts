@@ -14,11 +14,34 @@ type WhatsAppDeps = {
   sendWhatsAppText: (to: string, text: string) => Promise<void>;
 };
 
+const TIPO_OPERACION_LABEL: Record<Busqueda["tipo_operacion"], string> = {
+  Compra: "Comprar",
+  Alquiler: "Alquilar",
+  Inversion: "Inversión",
+};
+
+function buildBusquedaDetalle(contacto: Contacto, busqueda: Busqueda): string {
+  const lineas = [
+    `Contacto: ${contacto.nombre} (${contacto.telefono ?? "sin teléfono"})`,
+    `Operación: ${TIPO_OPERACION_LABEL[busqueda.tipo_operacion]}`,
+  ];
+  if (busqueda.tipo_propiedad) lineas.push(`Tipo de propiedad: ${busqueda.tipo_propiedad}`);
+  if (busqueda.zona) lineas.push(`Zona: ${busqueda.zona}`);
+  if (busqueda.presupuesto_min != null || busqueda.presupuesto_max != null) {
+    const min = busqueda.presupuesto_min ?? "sin mínimo";
+    const max = busqueda.presupuesto_max ?? "sin máximo";
+    lineas.push(`Presupuesto: ${busqueda.moneda ?? ""} ${min} - ${max}`.trim());
+  }
+  if (busqueda.dormitorios != null) lineas.push(`Dormitorios mínimos: ${busqueda.dormitorios}`);
+  if (busqueda.otros_requisitos) lineas.push(`Otros requisitos: ${busqueda.otros_requisitos}`);
+  return lineas.join("\n");
+}
+
 function buildResumenTexto(contacto: Contacto, matches: Propiedad[], busqueda: Busqueda): string {
   const lineas = matches.map(
     (p) => `- ${p.direccion}: ${buildMatchReason(p, busqueda)}`
   );
-  return `Propiedades para ${contacto.nombre}:\n${lineas.join("\n")}`;
+  return `${buildBusquedaDetalle(contacto, busqueda)}\n\nPropiedades que matchean:\n${lineas.join("\n")}`;
 }
 
 export async function notificarBrunellaCompatibilidad(
@@ -31,7 +54,7 @@ export async function notificarBrunellaCompatibilidad(
   if (matches.length === 0) {
     await deps.sendMessage(
       chatId,
-      `Sin matches por ahora para la búsqueda de ${contacto.nombre} — quedó guardada, avisame cuando cargues algo que pueda servirle.`
+      `Sin matches por ahora en tu portfolio para esta búsqueda:\n\n${buildBusquedaDetalle(contacto, busqueda)}\n\nQuedó guardada — avisame cuando cargues algo que pueda servirle.`
     );
     return;
   }
