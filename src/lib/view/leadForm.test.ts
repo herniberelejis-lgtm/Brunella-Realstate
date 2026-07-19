@@ -36,6 +36,22 @@ describe("parseCompradorForm", () => {
     expect(result.success).toBe(false);
   });
 
+  it("parses multiple caracteristicas checkboxes into an array", () => {
+    const formData = new FormData();
+    formData.set("nombre", "Juan");
+    formData.set("telefono", "+54 351 555-1234");
+    formData.set("tipo_operacion", "Compra");
+    formData.set("tipo_propiedad", "Departamento");
+    formData.append("caracteristicas", "garage");
+    formData.append("caracteristicas", "pileta");
+
+    const result = parseCompradorForm(formData);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.caracteristicas).toEqual(["garage", "pileta"]);
+    }
+  });
+
   it("allows optional fields to be blank", () => {
     const result = parseCompradorForm(
       fd({

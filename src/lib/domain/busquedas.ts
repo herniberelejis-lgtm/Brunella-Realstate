@@ -11,6 +11,9 @@ export type Busqueda = {
   zona: string | null;
   tipo_propiedad: "Departamento" | "Casa" | "PH" | "Lote" | "Local/Oficina" | null;
   dormitorios: number | null;
+  ambientes: number | null;
+  banos: number | null;
+  caracteristicas: string[];
   otros_requisitos: string | null;
   activa: boolean;
   documento_aprobado: boolean;

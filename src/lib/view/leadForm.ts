@@ -8,6 +8,17 @@ const optionalNumber = z.preprocess(
 
 const TIPOS_PROPIEDAD = ["Departamento", "Casa", "PH", "Lote", "Local/Oficina"] as const;
 
+export const CARACTERISTICAS_OPCIONES = [
+  { value: "garage", label: "Garage" },
+  { value: "jardin", label: "Jardín" },
+  { value: "pileta", label: "Pileta" },
+  { value: "parrilla", label: "Parrilla" },
+  { value: "balcon", label: "Balcón" },
+  { value: "amenities", label: "Amenities" },
+  { value: "seguridad_24h", label: "Seguridad 24h" },
+  { value: "planta_baja", label: "Planta baja" },
+] as const;
+
 const optionalEmail = z.preprocess(blankToNull, z.string().trim().email().nullable().default(null));
 
 const compradorSchema = z.object({
@@ -21,6 +32,9 @@ const compradorSchema = z.object({
   presupuesto_max: optionalNumber,
   moneda: z.preprocess(blankToNull, z.enum(["ARS", "USD"]).nullable().default(null)),
   dormitorios: optionalNumber,
+  ambientes: optionalNumber,
+  banos: optionalNumber,
+  caracteristicas: z.array(z.string()).default([]),
   otros_requisitos: z.preprocess(blankToNull, z.string().nullable().default(null)),
 });
 
@@ -41,9 +55,8 @@ export type PropietarioFormData = z.infer<typeof propietarioSchema>;
 
 function parseWithSchema<T>(
   schema: z.ZodType<T>,
-  formData: FormData
+  raw: Record<string, unknown>
 ): { success: true; data: T } | { success: false; error: string } {
-  const raw = Object.fromEntries(formData.entries());
   const result = schema.safeParse(raw);
   if (!result.success) {
     return { success: false, error: result.error.issues[0]?.message ?? "Datos inválidos" };
@@ -52,9 +65,13 @@ function parseWithSchema<T>(
 }
 
 export function parseCompradorForm(formData: FormData) {
-  return parseWithSchema(compradorSchema, formData);
+  const raw = {
+    ...Object.fromEntries(formData.entries()),
+    caracteristicas: formData.getAll("caracteristicas"),
+  };
+  return parseWithSchema(compradorSchema, raw);
 }
 
 export function parsePropietarioForm(formData: FormData) {
-  return parseWithSchema(propietarioSchema, formData);
+  return parseWithSchema(propietarioSchema, Object.fromEntries(formData.entries()));
 }

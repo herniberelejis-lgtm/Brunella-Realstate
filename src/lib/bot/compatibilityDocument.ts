@@ -3,6 +3,11 @@ import type { Busqueda } from "../domain/busquedas";
 import type { Contacto } from "../domain/contactos";
 import { buildMatchReason } from "./propertyMatching";
 import { parseImagenes } from "../view/imagenes";
+import { CARACTERISTICAS_OPCIONES } from "../view/leadForm";
+
+const CARACTERISTICAS_LABEL: Record<string, string> = Object.fromEntries(
+  CARACTERISTICAS_OPCIONES.map((opcion) => [opcion.value, opcion.label])
+);
 
 type TelegramDeps = {
   sendMediaGroup: (chatId: number, photos: { url: string; caption?: string }[]) => Promise<void>;
@@ -33,6 +38,14 @@ function buildBusquedaDetalle(contacto: Contacto, busqueda: Busqueda): string {
     lineas.push(`Presupuesto: ${busqueda.moneda ?? ""} ${min} - ${max}`.trim());
   }
   if (busqueda.dormitorios != null) lineas.push(`Dormitorios mínimos: ${busqueda.dormitorios}`);
+  if (busqueda.ambientes != null) lineas.push(`Ambientes mínimos: ${busqueda.ambientes}`);
+  if (busqueda.banos != null) lineas.push(`Baños mínimos: ${busqueda.banos}`);
+  if ((busqueda.caracteristicas ?? []).length > 0) {
+    const labels = busqueda.caracteristicas
+      .map((clave) => CARACTERISTICAS_LABEL[clave] ?? clave)
+      .join(", ");
+    lineas.push(`Características importantes: ${labels}`);
+  }
   if (busqueda.otros_requisitos) lineas.push(`Otros requisitos: ${busqueda.otros_requisitos}`);
   return lineas.join("\n");
 }

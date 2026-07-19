@@ -1,11 +1,12 @@
 import { submitCompradorAction } from "./actions";
 import { BrandMark } from "./BrandMark";
 import { ZONAS_CORDOBA } from "./zonasCordoba";
+import { CARACTERISTICAS_OPCIONES } from "@/lib/view/leadForm";
 
 const inputClass =
   "mt-1.5 w-full rounded-xl border border-[#E4D8C3] bg-white px-4 py-3 text-base text-[#2B2620] placeholder:text-[#B8AC96] focus:border-[#C9A24B] focus:outline-none focus:ring-2 focus:ring-[#C9A24B]/25";
 const labelClass = "block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9C7A2E]";
-const fieldWrap = "";
+const overlineClass = "text-[11px] font-semibold uppercase tracking-[0.2em] text-[#9C7A2E]";
 
 export function CompradorForm({ token, showError }: { token: string | null; showError: boolean }) {
   const action = submitCompradorAction.bind(null, token);
@@ -38,7 +39,7 @@ export function CompradorForm({ token, showError }: { token: string | null; show
         className="rounded-2xl border border-[#EFE3CE] bg-white/80 p-6 shadow-[0_8px_30px_rgba(120,95,40,0.08)] sm:p-10"
       >
         <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-          <div className={fieldWrap}>
+          <div>
             <label className={labelClass} htmlFor="tipo_operacion">
               Tipo de operación
             </label>
@@ -49,26 +50,20 @@ export function CompradorForm({ token, showError }: { token: string | null; show
             </select>
           </div>
 
-          <div className={fieldWrap}>
-            <label className={labelClass} htmlFor="presupuesto_max">
-              Presupuesto
+          <div>
+            <label className={labelClass} htmlFor="tipo_propiedad">
+              Tipo de propiedad
             </label>
-            <div className="mt-1.5 flex gap-2">
-              <select name="moneda" defaultValue="USD" className={`${inputClass} mt-0 w-24 flex-none`}>
-                <option value="USD">USD</option>
-                <option value="ARS">ARS</option>
-              </select>
-              <input
-                id="presupuesto_max"
-                name="presupuesto_max"
-                type="number"
-                placeholder="Ej. 150.000"
-                className={`${inputClass} mt-0`}
-              />
-            </div>
+            <select id="tipo_propiedad" name="tipo_propiedad" className={inputClass} defaultValue="Departamento">
+              <option value="Departamento">Departamento</option>
+              <option value="Casa">Casa</option>
+              <option value="PH">PH</option>
+              <option value="Lote">Lote</option>
+              <option value="Local/Oficina">Local/Oficina</option>
+            </select>
           </div>
 
-          <div className={fieldWrap}>
+          <div className="sm:col-span-2">
             <label className={labelClass} htmlFor="zona">
               Zona / barrio
             </label>
@@ -86,48 +81,129 @@ export function CompradorForm({ token, showError }: { token: string | null; show
               ))}
             </datalist>
           </div>
+        </div>
 
-          <div className={fieldWrap}>
-            <label className={labelClass} htmlFor="tipo_propiedad">
-              Tipo de propiedad
+        <div className="mt-8">
+          <p className={overlineClass}>Características</p>
+          <div className="mt-1 h-px bg-[#EFE3CE]" />
+
+          <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+            <div>
+              <label className={labelClass} htmlFor="dormitorios">
+                Dormitorios mínimos
+              </label>
+              <select id="dormitorios" name="dormitorios" className={inputClass} defaultValue="">
+                <option value="">Sin preferencia</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass} htmlFor="ambientes">
+                Ambientes mínimos
+              </label>
+              <select id="ambientes" name="ambientes" className={inputClass} defaultValue="">
+                <option value="">Sin preferencia</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass} htmlFor="banos">
+                Baños mínimos
+              </label>
+              <select id="banos" name="banos" className={inputClass} defaultValue="">
+                <option value="">Sin preferencia</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <p className={labelClass}>Características importantes</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {CARACTERISTICAS_OPCIONES.map((opcion) => (
+                <label key={opcion.value} className="cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="caracteristicas"
+                    value={opcion.value}
+                    className="peer sr-only"
+                  />
+                  <span className="inline-block rounded-full border border-[#E4D8C3] bg-white px-4 py-2 text-sm text-[#6B5F4C] transition peer-checked:border-[#C9A24B] peer-checked:bg-[#C9A24B] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#C9A24B]/40">
+                    {opcion.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <p className={overlineClass}>Presupuesto</p>
+          <div className="mt-1 h-px bg-[#EFE3CE]" />
+
+          <div className="mt-4">
+            <label className={labelClass} htmlFor="moneda">
+              Moneda
             </label>
-            <select id="tipo_propiedad" name="tipo_propiedad" className={inputClass} defaultValue="Departamento">
-              <option value="Departamento">Departamento</option>
-              <option value="Casa">Casa</option>
-              <option value="PH">PH</option>
-              <option value="Lote">Lote</option>
-              <option value="Local/Oficina">Local/Oficina</option>
+            <select id="moneda" name="moneda" className={`${inputClass} w-32`} defaultValue="USD">
+              <option value="USD">USD</option>
+              <option value="ARS">ARS</option>
             </select>
           </div>
 
-          <div className={fieldWrap}>
-            <label className={labelClass} htmlFor="dormitorios">
-              Dormitorios
-            </label>
-            <select id="dormitorios" name="dormitorios" className={inputClass} defaultValue="">
-              <option value="">Indistinto</option>
-              <option value="1">1+</option>
-              <option value="2">2+</option>
-              <option value="3">3+</option>
-              <option value="4">4+</option>
-            </select>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass} htmlFor="presupuesto_min">
+                Mínimo
+              </label>
+              <input
+                id="presupuesto_min"
+                name="presupuesto_min"
+                type="number"
+                placeholder="0"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="presupuesto_max">
+                Máximo
+              </label>
+              <input
+                id="presupuesto_max"
+                name="presupuesto_max"
+                type="number"
+                placeholder="Ej. 150.000"
+                className={inputClass}
+              />
+            </div>
           </div>
+        </div>
 
-          <div className={fieldWrap}>
-            <label className={labelClass} htmlFor="nombre">
-              Nombre
-            </label>
-            <input id="nombre" name="nombre" type="text" required className={inputClass} />
-          </div>
+        <div className="mt-8">
+          <label className={labelClass} htmlFor="nombre">
+            Nombre
+          </label>
+          <input id="nombre" name="nombre" type="text" required className={inputClass} />
+        </div>
 
-          <div className={fieldWrap}>
+        <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+          <div>
             <label className={labelClass} htmlFor="telefono">
               Teléfono / WhatsApp
             </label>
             <input id="telefono" name="telefono" type="tel" required className={inputClass} />
           </div>
-
-          <div className={fieldWrap}>
+          <div>
             <label className={labelClass} htmlFor="email">
               Email
             </label>

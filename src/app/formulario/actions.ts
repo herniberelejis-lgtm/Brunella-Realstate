@@ -56,6 +56,9 @@ export async function submitCompradorAction(
     presupuesto_max: data.presupuesto_max,
     moneda: data.moneda,
     dormitorios: data.dormitorios,
+    ambientes: data.ambientes,
+    banos: data.banos,
+    caracteristicas: data.caracteristicas,
     otros_requisitos: data.otros_requisitos,
     activa: true,
   });
