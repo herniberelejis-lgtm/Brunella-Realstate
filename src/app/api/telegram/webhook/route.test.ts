@@ -6,6 +6,7 @@ vi.mock("@/lib/telegram/client", () => ({
   getFileDownloadUrl: vi.fn().mockResolvedValue("https://example.com/file.oga"),
   downloadFile: vi.fn().mockResolvedValue(Buffer.from("audio")),
   sendMessage: vi.fn().mockResolvedValue(undefined),
+  answerCallbackQuery: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("@/lib/bot/processVoiceNote", () => ({
   processVoiceNote: vi.fn().mockResolvedValue({ respuesta: "✅ Guardé todo" }),

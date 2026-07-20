@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { getDomainModules } from "@/lib/domain/factory";
 import { UsersIcon } from "@/components/icons/UsersIcon";
 import { KeyIcon } from "@/components/icons/KeyIcon";
 import { BuildingIcon } from "@/components/icons/BuildingIcon";
 
 export default async function InicioPage() {
+  // Sin esto la página se prerenderiza estática en el build y los conteos quedan
+  // congelados con el snapshot de la base del momento del deploy.
+  await connection();
   const { contactos, propiedades } = getDomainModules();
   const [todosLosContactos, todasLasPropiedades] = await Promise.all([
     contactos.list(),

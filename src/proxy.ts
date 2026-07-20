@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { safeEqual } from "./lib/security/safeEqual";
+import { checkDashboardCredentials } from "./lib/security/dashboardCredentials";
 
 const PUBLIC_PATHS = [
   "/api/telegram/webhook",
@@ -14,16 +14,8 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const expectedUser = process.env.DASHBOARD_USER ?? "";
-  const expectedPassword = process.env.DASHBOARD_PASSWORD ?? "";
-  const authHeader = request.headers.get("authorization");
-
-  if (authHeader?.startsWith("Basic ")) {
-    const decoded = Buffer.from(authHeader.slice(6), "base64").toString("utf-8");
-    const [user, password] = decoded.split(":");
-    if (safeEqual(user ?? "", expectedUser) && safeEqual(password ?? "", expectedPassword)) {
-      return NextResponse.next();
-    }
+  if (checkDashboardCredentials(request.headers.get("authorization"))) {
+    return NextResponse.next();
   }
 
   return new NextResponse("Autenticación requerida", {

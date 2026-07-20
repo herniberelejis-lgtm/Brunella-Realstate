@@ -5,6 +5,7 @@ import {
   getFileDownloadUrl,
   downloadFile,
   sendMessage,
+  answerCallbackQuery,
 } from "@/lib/telegram/client";
 import { processVoiceNote } from "@/lib/bot/processVoiceNote";
 import { importarConversacionWhatsApp } from "@/lib/bot/importarConversacion";
@@ -76,6 +77,11 @@ export async function POST(request: NextRequest) {
 
   const callback = parsed.data.callback_query;
   if (callback && isFromAdmin(callback.from.id)) {
+    // Cierra el spinner del botón en el cliente de Telegram; si falla no debe frenar
+    // el procesamiento real de la aprobación.
+    await answerCallbackQuery(callback.id).catch((error) =>
+      console.error("Failed to answer callback query", error)
+    );
     const [action, busquedaId] = callback.data.split(":");
     if (action === "aprobar_busqueda" && busquedaId) {
       const { busquedas, contactos } = getDomainModules();
