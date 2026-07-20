@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{DIRECCION_PROPIEDAD}} — Plano interactivo</title>
+<style>
+  :root {
+    --brand-primary: #1c2b24;
+    --brand-accent: #c9a769;
+    --brand-text: #f5f2ec;
+    --brand-text-muted: #b9b3a6;
+    --brand-surface: #24352c;
+    --brand-font-display: Georgia, 'Times New Roman', serif;
+    --brand-font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --radius: 14px;
+    --shadow-soft: 0 12px 40px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--brand-primary); color: var(--brand-text); font-family: var(--brand-font-body); min-height: 100vh; }
+  header { padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 5vw, 4rem) 1rem; }
+  header .eyebrow { text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.72rem; color: var(--brand-accent); margin: 0 0 0.5rem; }
+  header h1 { font-family: var(--brand-font-display); font-weight: 400; font-size: clamp(1.6rem, 4vw, 2.6rem); margin: 0 0 0.35rem; }
+  header p { color: var(--brand-text-muted); margin: 0; font-size: 0.95rem; }
+  .plan-wrap { position: relative; max-width: 980px; margin: 1rem auto clamp(2rem, 6vw, 4rem); padding: 0 clamp(1rem, 5vw, 4rem); }
+  .plan-frame { position: relative; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-soft); border: 1px solid rgba(255,255,255,0.08); }
+  .plan-frame img { display: block; width: 100%; height: auto; }
+  .hotspot { position: absolute; width: 34px; height: 34px; border-radius: 50%; background: var(--brand-accent); border: 2px solid var(--brand-text); color: var(--brand-primary); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); cursor: pointer; transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .hotspot::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; border: 1px solid rgba(201,167,105,0.55); animation: pulse 2.4s ease-out infinite; }
+  @keyframes pulse { 0% { transform: scale(0.7); opacity: 0.9; } 100% { transform: scale(1.6); opacity: 0; } }
+  .hotspot:hover, .hotspot:focus-visible { transform: translate(-50%, -50%) scale(1.15); outline: none; }
+  .room-legend { max-width: 980px; margin: 0 auto; padding: 0 clamp(1rem, 5vw, 4rem) clamp(2rem, 5vw, 3rem); display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.6rem; }
+  .room-chip { background: var(--brand-surface); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.6rem 0.8rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: background 150ms; }
+  .room-chip:hover { background: rgba(201,167,105,0.12); }
+  .room-chip .num { width: 22px; height: 22px; border-radius: 50%; background: var(--brand-accent); color: var(--brand-primary); font-weight: 700; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(10,14,11,0.82); display: none; align-items: center; justify-content: center; padding: 1.5rem; z-index: 50; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: var(--brand-surface); border-radius: var(--radius); max-width: 720px; width: 100%; max-height: 90vh; overflow: auto; box-shadow: var(--shadow-soft); border: 1px solid rgba(255,255,255,0.08); }
+  .modal-media { width: 100%; aspect-ratio: 16 / 10; background: #000; }
+  .modal-media img, .modal-media video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .modal-body { padding: 1.2rem 1.4rem 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+  .modal-body h2 { font-family: var(--brand-font-display); font-weight: 400; margin: 0 0 0.3rem; font-size: 1.3rem; }
+  .modal-body p { margin: 0; color: var(--brand-text-muted); font-size: 0.9rem; }
+  .modal-close { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--brand-text); border-radius: 50%; width: 34px; height: 34px; flex-shrink: 0; cursor: pointer; font-size: 1rem; }
+  .modal-close:hover { background: rgba(255,255,255,0.08); }
+  @media (prefers-color-scheme: light) {
+    :root { --brand-primary: #f7f5f0; --brand-text: #1c2b24; --brand-text-muted: #5c6960; --brand-surface: #ffffff; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="eyebrow">{{NOMBRE_AGENCIA}}</p>
+  <h1>{{DIRECCION_PROPIEDAD}}</h1>
+  <p>Plano interactivo — haz clic en cada punto para ver la habitación</p>
+</header>
+<div class="plan-wrap">
+  <div class="plan-frame">
+    <img id="floorplan-img" src="{{RUTA_IMAGEN_PLANO}}" alt="Plano de {{DIRECCION_PROPIEDAD}}">
+  </div>
+</div>
+<div class="room-legend" id="room-legend"></div>
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <div class="modal-media" id="modal-media"></div>
+    <div class="modal-body">
+      <div><h2 id="modal-title"></h2><p id="modal-caption"></p></div>
+      <button class="modal-close" id="modal-close" aria-label="Cerrar">✕</button>
+    </div>
+  </div>
+</div>
+<script>
+  const ROOMS = [
+    { id: 1, label: "Entrada",   xPercent: 50, yPercent: 88, media: [{ type: "image", src: "media/01-entrada.jpg", caption: "Recibidor" }] },
+    { id: 2, label: "Salón",     xPercent: 62, yPercent: 55, media: [{ type: "video", src: "media/02-salon.mp4",   caption: "Salón principal" }] },
+    { id: 3, label: "Cocina",    xPercent: 30, yPercent: 45, media: [{ type: "image", src: "media/03-cocina.jpg", caption: "Cocina" }] },
+    // ... añadir el resto de habitaciones aquí
+  ];
+  const planImg = document.getElementById('floorplan-img');
+  const planFrame = planImg.parentElement;
+  const legend = document.getElementById('room-legend');
+  const backdrop = document.getElementById('modal-backdrop');
+  const modalMedia = document.getElementById('modal-media');
+  const modalTitle = document.getElementById('modal-title');
+  const modalCaption = document.getElementById('modal-caption');
+  function openRoom(room) {
+    const m = room.media[0];
+    modalMedia.innerHTML = m.type === 'video'
+      ? `<video src="${m.src}" controls autoplay muted loop></video>`
+      : `<img src="${m.src}" alt="${room.label}">`;
+    modalTitle.textContent = room.label;
+    modalCaption.textContent = m.caption || '';
+    backdrop.classList.add('open');
+  }
+  ROOMS.forEach(room => {
+    const dot = document.createElement('button');
+    dot.className = 'hotspot';
+    dot.style.left = room.xPercent + '%';
+    dot.style.top = room.yPercent + '%';
+    dot.textContent = room.id;
+    dot.setAttribute('aria-label', room.label);
+    dot.addEventListener('click', () => openRoom(room));
+    planFrame.appendChild(dot);
+    const chip = document.createElement('button');
+    chip.className = 'room-chip';
+    chip.innerHTML = `<span class="num">${room.id}</span><span>${room.label}</span>`;
+    chip.addEventListener('click', () => openRoom(room));
+    legend.appendChild(chip);
+  });
+  document.getElementById('modal-close').addEventListener('click', () => {
+    backdrop.classList.remove('open'); modalMedia.innerHTML = '';
+  });
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) { backdrop.classList.remove('open'); modalMedia.innerHTML = ''; }
+  });
+</script>
+</body>
+</html>
