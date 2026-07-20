@@ -19,5 +19,12 @@ export function createConversacionesModule(pool: Pool) {
     async findByContactoId(contactoId: string): Promise<Conversacion[]> {
       return repo.list({ contacto_id: contactoId } as Partial<Conversacion>);
     },
+    async findContactoIdsByOrigen(origen: Conversacion["origen"]): Promise<string[]> {
+      const result = await pool.query(
+        "select distinct contacto_id from conversaciones where origen = $1",
+        [origen]
+      );
+      return result.rows.map((r) => r.contacto_id);
+    },
   };
 }

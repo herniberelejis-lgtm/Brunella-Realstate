@@ -18,6 +18,12 @@ import { createMuestrasModule } from "@/lib/domain/muestras";
 import { createConsultasModule } from "@/lib/domain/consultas";
 import { createOfertasModule } from "@/lib/domain/ofertas";
 import { enviarDocumentoAprobado } from "@/lib/bot/enviarDocumentoAprobado";
+import {
+  enviarSeguimientoMasivo,
+  buildSeguimientoResumen,
+  type SeguimientoConfig,
+} from "@/lib/bot/enviarSeguimientoMasivo";
+import { sendWhatsAppTemplate } from "@/lib/whatsapp/client";
 import { getDomainModules } from "@/lib/domain/factory";
 
 // Default serverless function timeout (10s on Vercel Hobby) is too short for
@@ -48,6 +54,32 @@ function isFromAdmin(chatId: number): boolean {
   const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
   if (!adminChatId) return false;
   return chatId === Number(adminChatId);
+}
+
+function seguimientoConfig(dryRun: boolean): SeguimientoConfig {
+  return {
+    templateName: process.env.WHATSAPP_TEMPLATE_SEGUIMIENTO ?? null,
+    languageCode: process.env.WHATSAPP_TEMPLATE_LANG ?? "es_AR",
+    dryRun,
+  };
+}
+
+async function correrSeguimiento(chatId: number, dryRun: boolean): Promise<void> {
+  const { contactos, conversaciones } = getDomainModules();
+  const resultado = await enviarSeguimientoMasivo(
+    { contactos, conversaciones, sendWhatsAppTemplate },
+    seguimientoConfig(dryRun)
+  );
+  await sendMessage(chatId, buildSeguimientoResumen(resultado), {
+    reply_markup:
+      resultado.dryRun && resultado.destinatarios.length > 0
+        ? {
+            inline_keyboard: [
+              [{ text: "Enviar de verdad", callback_data: "enviar_seguimiento" }],
+            ],
+          }
+        : undefined,
+  });
 }
 
 // Expects "Nombre, Teléfono" (or "Nombre; Teléfono") as the caption on an imported WhatsApp
@@ -83,6 +115,10 @@ export async function POST(request: NextRequest) {
       console.error("Failed to answer callback query", error)
     );
     const [action, busquedaId] = callback.data.split(":");
+    if (action === "enviar_seguimiento") {
+      await correrSeguimiento(callback.message.chat.id, false);
+      return NextResponse.json({ ok: true });
+    }
     if (action === "aprobar_busqueda" && busquedaId) {
       const { busquedas, contactos } = getDomainModules();
       const busqueda = await busquedas.findById(busquedaId);
@@ -139,6 +175,20 @@ export async function POST(request: NextRequest) {
       await sendMessage(chatId, "No pude procesar ese archivo. Probá de nuevo en un rato.");
     }
 
+    return NextResponse.json({ ok: true });
+  }
+
+  // Comando de texto para disparar el envío masivo de seguimiento a la cartera migrada.
+  // Siempre arranca en modo previsualización (no manda nada); el envío real se confirma
+  // después con el botón inline.
+  const texto = parsed.data.message?.text?.trim().toLowerCase();
+  if (texto === "seguimiento" && chatId && isFromAdmin(chatId)) {
+    try {
+      await correrSeguimiento(chatId, true);
+    } catch (error) {
+      console.error("Failed to build seguimiento preview", error);
+      await sendMessage(chatId, "No pude armar la previsualización del seguimiento. Probá de nuevo en un rato.");
+    }
     return NextResponse.json({ ok: true });
   }
 

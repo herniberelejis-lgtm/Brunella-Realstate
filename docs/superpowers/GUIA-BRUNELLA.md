@@ -83,7 +83,38 @@ Si alguien te escribe orgánicamente (no por un anuncio, o vos todavía no carga
 ese anuncio), el contacto se crea igual, simplemente sin esa vinculación a una propiedad
 puntual.
 
-### 4. El dashboard
+### 4. Migrar tu cartera vieja de WhatsApp
+
+Para pasar tus clientes de siempre (los que tenés en tu WhatsApp personal) al sistema nuevo, hay
+dos pasos: **importar** cada conversación y, después, **mandarles un seguimiento** derivándolos
+al formulario nuevo.
+
+**Paso 1 — Importar (esto ya lo podés hacer hoy):**
+
+1. En WhatsApp, abrí el chat del cliente → menú (⋮) → **Más** → **Exportar chat** → **Sin
+   archivos** (te genera un `.txt`).
+2. Mandale ese `.txt` al bot de Telegram, y en el **texto del mensaje** (el caption del archivo)
+   escribí el nombre y el teléfono así: `Juan Pérez, 3511234567`.
+3. El sistema lee la conversación, la resume con IA, y crea o actualiza el contacto en el CRM
+   con ese resumen. Te contesta confirmando qué entendió.
+
+**Paso 2 — Seguimiento masivo (envío automático):**
+
+Una vez que importaste tu cartera, escribile al bot la palabra **`seguimiento`**. El bot te
+muestra una **previsualización**: a quiénes se les mandaría el mensaje (los importados que
+todavía no confirmaron por tu número nuevo y no están cerrados) y a quiénes omite y por qué.
+**No manda nada todavía** — es solo para que revises la lista.
+
+Si estás conforme, tocás el botón **"Enviar de verdad"** y ahí sí se les manda el mensaje de
+seguimiento por WhatsApp, de a uno, automáticamente.
+
+⚠️ **Importante:** para poder escribirle *primero* a alguien por WhatsApp (alguien que no te
+escribió a tu número nuevo en las últimas 24 h), Meta **exige una plantilla de mensaje
+pre-aprobada**. Hasta que esa plantilla esté aprobada y cargada en el sistema, el comando
+`seguimiento` funciona solo en modo previsualización (te muestra la lista pero el botón no
+manda nada real). El paso a paso para aprobar la plantilla está en el README.
+
+### 5. El dashboard
 
 Es la parte que ya conocías de la Fase 1: entrás con usuario y contraseña, y ves listas de
 Contactos y Propiedades. Cada ficha tiene un botón con un lápiz (ícono de edición) que te deja
@@ -94,7 +125,7 @@ contacto).
 Los leads que entran por el formulario público aparecen en el dashboard igual que los que
 cargás vos por voz — no hay una sección separada, es el mismo CRM.
 
-### 5. Qué NO pasa automáticamente hoy
+### 6. Qué NO pasa automáticamente hoy
 
 Para que no haya sorpresas:
 

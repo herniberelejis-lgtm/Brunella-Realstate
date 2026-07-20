@@ -45,4 +45,37 @@ export async function sendWhatsAppImage(
   });
 }
 
+/**
+ * Envía un mensaje de PLANTILLA (template) pre-aprobada por Meta. Es la única forma de
+ * escribirle primero a alguien que no nos escribió en las últimas 24h — el caso del envío
+ * masivo de seguimiento a la cartera migrada de WhatsApp.
+ *
+ * `bodyParams` rellena las variables {{1}}, {{2}}, ... del cuerpo de la plantilla, en orden.
+ */
+export async function sendWhatsAppTemplate(
+  to: string,
+  templateName: string,
+  languageCode: string,
+  bodyParams: string[] = []
+): Promise<void> {
+  const template: Record<string, unknown> = {
+    name: templateName,
+    language: { code: languageCode },
+  };
+  if (bodyParams.length > 0) {
+    template.components = [
+      {
+        type: "body",
+        parameters: bodyParams.map((text) => ({ type: "text", text })),
+      },
+    ];
+  }
+  await postToWhatsApp({
+    messaging_product: "whatsapp",
+    to,
+    type: "template",
+    template,
+  });
+}
+
 export { verifyChallenge, verifySignature } from "@/lib/meta/webhookVerification";

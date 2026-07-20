@@ -34,6 +34,8 @@ Sin `DATABASE_URL` configurado, la app corre con datos de ejemplo en memoria —
 | `WHATSAPP_ACCESS_TOKEN` | Token de acceso del número de WhatsApp Business (Cloud API) |
 | `WHATSAPP_PHONE_NUMBER_ID` | ID del número de teléfono de WhatsApp Business (Graph API, no el número en sí) |
 | `WHATSAPP_BUSINESS_NUMBER` | El número de WhatsApp de Brunella en formato internacional sin `+` (ej. `5493511234567`), usado para armar el link `wa.me` |
+| `WHATSAPP_TEMPLATE_SEGUIMIENTO` | (Opcional) Nombre de la plantilla aprobada por Meta para el envío masivo de seguimiento a la cartera migrada. Sin esta variable, el comando `seguimiento` del bot corre solo en modo previsualización (no envía nada). |
+| `WHATSAPP_TEMPLATE_LANG` | (Opcional) Código de idioma de la plantilla de seguimiento (default `es_AR`). Tiene que coincidir con el idioma con el que aprobaste la plantilla en Meta. |
 | `APP_BASE_URL` | URL pública de la app deployada (ej. `https://brunella-realstate.vercel.app`), usada para armar el link del formulario que se manda por Messenger/Instagram |
 
 ## Puesta en producción — pasos manuales pendientes
@@ -105,6 +107,50 @@ cuenta de Instagram y el número de WhatsApp Business de Brunella. Una vez cread
    promocionar una propiedad puntual, pegá el **código corto de esa propiedad** (visible en su
    ficha en el CRM, botón "Generar código" si todavía no tiene uno) en el campo `ref` del
    anuncio.
+
+## Envío masivo de seguimiento — aprobar la plantilla en Meta
+
+El comando `seguimiento` del bot de Telegram le manda a la cartera migrada de WhatsApp un
+mensaje derivándolos al formulario nuevo. Como se les escribe **primero** (fuera de la ventana
+de 24 h de atención al cliente), Meta exige una **plantilla de mensaje (message template)
+pre-aprobada**. Sin ella, el comando solo previsualiza. Pasos para aprobarla:
+
+1. Entrá a **WhatsApp Manager** (business.facebook.com → menú → *WhatsApp Manager*) o a
+   **Meta Business Suite → WhatsApp → Plantillas de mensajes**, sobre la misma cuenta de
+   WhatsApp Business (WABA) del número que ya conectaste.
+2. Tocá **Crear plantilla**.
+   - **Categoría:** elegí **Marketing** (un mensaje de reactivación/seguimiento es marketing;
+     *Utility* es solo para transaccionales tipo confirmaciones de pedido). Ojo: las de
+     Marketing pueden tener costo por conversación y el cliente puede optar por no recibirlas.
+   - **Nombre:** solo minúsculas, números y guión bajo, ej. `seguimiento_migracion`. **Este es
+     el valor exacto que va en la variable `WHATSAPP_TEMPLATE_SEGUIMIENTO`.**
+   - **Idioma:** elegí **Español** (o *Español (ARG)*). El código que elijas tiene que coincidir
+     con `WHATSAPP_TEMPLATE_LANG` (default `es_AR`; si elegís "Español" a secas suele ser `es`).
+3. **Cuerpo del mensaje.** El sistema rellena la variable `{{1}}` con el nombre del cliente.
+   Escribí algo como:
+
+   > Hola {{1}}, soy Brunella (Grupo Banker). Estoy pasando mi seguimiento a un sistema nuevo
+   > para ayudarte mejor con tu búsqueda. Si querés que retomemos, completá este formulario y en
+   > breve te contacto: https://brunella-realstate.vercel.app/formulario
+
+   - Meta te va a pedir un **ejemplo** para el `{{1}}` (ej. `Juan`).
+   - El link podés dejarlo como texto en el cuerpo (como arriba), o —más prolijo— agregar un
+     **Botón → Visitar sitio web** con esa URL. Cualquiera de las dos formas funciona con el
+     código actual (el código solo manda el nombre en `{{1}}`).
+   - Evitá texto demasiado promocional o URLs acortadas raras: son motivo común de rechazo.
+4. **Enviá a revisión.** Meta suele responder en minutos a unas horas. Si queda **Rejected**,
+   te dice el motivo (normalmente el texto); ajustás y reenviás.
+5. Cuando el estado sea **Approved**, cargá en las variables de entorno de Vercel:
+   - `WHATSAPP_TEMPLATE_SEGUIMIENTO` = el nombre exacto (ej. `seguimiento_migracion`)
+   - `WHATSAPP_TEMPLATE_LANG` = el código de idioma (ej. `es_AR` o `es`)
+   Volvé a deployar para que tomen efecto.
+6. **Probá primero con vos:** importá una conversación de prueba con **tu propio** número, corré
+   `seguimiento`, revisá la previsualización y recién ahí tocá **"Enviar de verdad"** para
+   confirmar que te llega el mensaje antes de disparárselo a toda la cartera.
+
+> Nota: para mandar a muchos números por primera vez puede aplicar el **límite de mensajería**
+> de tu número (por defecto arranca en 250 conversaciones/día y sube solo con buena reputación).
+> Si tenés una cartera grande, puede que los envíos se escalonen en varios días.
 
 ## Stack técnico
 

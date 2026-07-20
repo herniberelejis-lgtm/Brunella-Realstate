@@ -78,6 +78,13 @@ function buildInMemoryModules(): DomainModules {
       ...conversacionesTable,
       findByContactoId: async (id: string) =>
         (await conversacionesTable.list()).filter((c) => c.contacto_id === id),
+      findContactoIdsByOrigen: async (origen: Conversacion["origen"]) => [
+        ...new Set(
+          (await conversacionesTable.list())
+            .filter((c) => c.origen === origen)
+            .map((c) => c.contacto_id)
+        ),
+      ],
     },
     muestras: {
       ...muestrasTable,
