@@ -56,3 +56,14 @@ Normalizar cada clip a 1080p/30fps/h264 con ffmpeg, concatenar en orden (`room-0
 ## Negocio (precios, paquetes, outreach)
 
 Para preguntas de cuánto cobrar, qué paquetes armar o cómo conseguir clientes: manual, secciones 11 y 12. Para trabajar varias propiedades sin quemar tokens (fichas por propiedad, lecturas en paralelo, sesión nueva por propiedad): sección 13.
+
+## Skills relacionadas (colección marketingskills)
+
+Este skill produce los entregables; para venderlos y escalar el servicio, combinarlo con las skills de marketing instaladas en este proyecto. Al trabajar la parte comercial, leer primero `product-marketing` (fundación de todas) y luego la que aplique:
+
+- **`prospecting`** — encontrar agencias y listings sin vídeo (el argumento de venta del manual, sección 12).
+- **`cold-email`** — redactar el email en frío con asunto = dirección del inmueble.
+- **`offers` + `pricing`** — armar y afinar los paquetes Starter/Growth/Full.
+- **`social` + `video`** — distribuir los cortes 9:16 del walkthrough en redes.
+- **`emails`** — secuencias de seguimiento a agencias interesadas.
+- **`marketing-plan`** — plan de crecimiento del servicio completo.
