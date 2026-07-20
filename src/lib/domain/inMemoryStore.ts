@@ -7,13 +7,17 @@ export function createInMemoryTable<T extends { id: string }>(initial: T[] = [])
     async list(where?: Partial<T>): Promise<T[]> {
       if (!where) return [...rows];
       return rows.filter((row) =>
-        Object.entries(where).every(([key, value]) => (row as any)[key] === value)
+        Object.entries(where).every(
+          ([key, value]) => (row as Record<string, unknown>)[key] === value
+        )
       );
     },
     async findById(id: string): Promise<T | null> {
       return rows.find((row) => row.id === id) ?? null;
     },
-    async create(data: Omit<T, "id">): Promise<T> {
+    // Partial por el mismo motivo que Repository.create: los llamadores omiten columnas
+    // que en Postgres tienen default. El store en memoria no aplica esos defaults.
+    async create(data: Partial<Omit<T, "id">>): Promise<T> {
       const created = { ...data, id: randomUUID() } as T;
       rows = [...rows, created];
       return created;

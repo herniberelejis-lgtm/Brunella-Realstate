@@ -1,15 +1,16 @@
 import { getPool } from "../db/pool";
-import { createContactosModule } from "./contactos";
-import { createPropiedadesModule } from "./propiedades";
-import { createBusquedasModule } from "./busquedas";
-import { createConversacionesModule } from "./conversaciones";
-import { createMuestrasModule } from "./muestras";
-import { createConsultasModule } from "./consultas";
-import { createOfertasModule } from "./ofertas";
-import { createLeadsPendientesModule } from "./leadsPendientes";
+import { createContactosModule, type Contacto } from "./contactos";
+import { createPropiedadesModule, type Propiedad } from "./propiedades";
+import { createBusquedasModule, type Busqueda } from "./busquedas";
+import { createConversacionesModule, type Conversacion } from "./conversaciones";
+import { createMuestrasModule, type Muestra } from "./muestras";
+import { createConsultasModule, type Consulta } from "./consultas";
+import { createOfertasModule, type Oferta } from "./ofertas";
+import { createLeadsPendientesModule, type LeadPendiente } from "./leadsPendientes";
 import { createInMemoryTable } from "./inMemoryStore";
 import { CONTACTOS_SEED, PROPIEDADES_SEED } from "./seedData";
 import { phoneMatches } from "../text/phone";
+import { normalizeText } from "../text/normalize";
 
 export type DomainModules = {
   contactos: ReturnType<typeof createContactosModule>;
@@ -25,90 +26,96 @@ export type DomainModules = {
 let cachedInMemoryModules: DomainModules | undefined;
 
 function buildInMemoryModules(): DomainModules {
-  const contactosTable = createInMemoryTable(CONTACTOS_SEED);
-  const propiedadesTable = createInMemoryTable(PROPIEDADES_SEED);
-  const busquedasTable = createInMemoryTable([]);
-  const conversacionesTable = createInMemoryTable([]);
-  const muestrasTable = createInMemoryTable([]);
-  const consultasTable = createInMemoryTable([]);
-  const ofertasTable = createInMemoryTable([]);
-  const leadsPendientesTable = createInMemoryTable([]);
+  const contactosTable = createInMemoryTable<Contacto>(CONTACTOS_SEED);
+  const propiedadesTable = createInMemoryTable<Propiedad>(PROPIEDADES_SEED);
+  const busquedasTable = createInMemoryTable<Busqueda>([]);
+  const conversacionesTable = createInMemoryTable<Conversacion>([]);
+  const muestrasTable = createInMemoryTable<Muestra>([]);
+  const consultasTable = createInMemoryTable<Consulta>([]);
+  const ofertasTable = createInMemoryTable<Oferta>([]);
+  const leadsPendientesTable = createInMemoryTable<LeadPendiente>([]);
 
   return {
     contactos: {
       ...contactosTable,
       findByNombreLike: async (nombre: string) =>
         (await contactosTable.list()).filter((c) =>
-          c.nombre.toLowerCase().includes(nombre.toLowerCase())
+          normalizeText(c.nombre).includes(normalizeText(nombre))
         ),
       findByTelefono: async (telefono: string) =>
-        (await contactosTable.list()).find((c: any) => phoneMatches(c.telefono, telefono)) ??
-        null,
+        (await contactosTable.list()).find((c) => phoneMatches(c.telefono, telefono)) ?? null,
       findNecesitanSeguimiento: async () => [],
       marcarActividad: async () => {},
       marcarWhatsappConfirmado: async (id: string) => {
         const item = await contactosTable.findById(id);
-        if (item) await contactosTable.update(id, { whatsapp_confirmado: true } as any);
+        if (item) await contactosTable.update(id, { whatsapp_confirmado: true });
       },
-    } as any,
+    },
     propiedades: {
       ...propiedadesTable,
       findByDireccionLike: async (direccion: string) =>
         (await propiedadesTable.list()).filter((p) =>
-          p.direccion.toLowerCase().includes(direccion.toLowerCase())
+          normalizeText(p.direccion).includes(normalizeText(direccion))
         ),
       findByCodigo: async (codigo: string) =>
-        (await propiedadesTable.list()).find((p: any) => p.codigo === codigo) ?? null,
-      withTotales: async (propiedad: any) => ({
+        (await propiedadesTable.list()).find((p) => p.codigo === codigo) ?? null,
+      withTotales: async (propiedad: Propiedad) => ({
         ...propiedad,
         consultas_totales: propiedad.consultas_historicas,
         visitas_totales: propiedad.visitas_historicas,
       }),
-    } as any,
+    },
     busquedas: {
       ...busquedasTable,
       findByContactoId: async (id: string) =>
-        (await busquedasTable.list()).filter((b: any) => b.contacto_id === id),
+        (await busquedasTable.list()).filter((b) => b.contacto_id === id),
       findPendienteAprobadoByContactoId: async (id: string) =>
         (await busquedasTable.list()).find(
-          (b: any) => b.contacto_id === id && b.documento_aprobado && !b.documento_enviado
+          (b) => b.contacto_id === id && b.documento_aprobado && !b.documento_enviado
         ) ?? null,
-    } as any,
+    },
     conversaciones: {
       ...conversacionesTable,
       findByContactoId: async (id: string) =>
-        (await conversacionesTable.list()).filter((c: any) => c.contacto_id === id),
-    } as any,
+        (await conversacionesTable.list()).filter((c) => c.contacto_id === id),
+      findContactoIdsByOrigen: async (origen: Conversacion["origen"]) => [
+        ...new Set(
+          (await conversacionesTable.list())
+            .filter((c) => c.origen === origen)
+            .map((c) => c.contacto_id)
+        ),
+      ],
+    },
     muestras: {
       ...muestrasTable,
       findByContactoId: async (id: string) =>
-        (await muestrasTable.list()).filter((m: any) => m.contacto_id === id),
+        (await muestrasTable.list()).filter((m) => m.contacto_id === id),
       findByPropiedadId: async (id: string) =>
-        (await muestrasTable.list()).filter((m: any) => m.propiedad_id === id),
-    } as any,
+        (await muestrasTable.list()).filter((m) => m.propiedad_id === id),
+    },
     consultas: {
       ...consultasTable,
       findByContactoId: async (id: string) =>
-        (await consultasTable.list()).filter((c: any) => c.contacto_id === id),
+        (await consultasTable.list()).filter((c) => c.contacto_id === id),
       findByPropiedadId: async (id: string) =>
-        (await consultasTable.list()).filter((c: any) => c.propiedad_id === id),
-    } as any,
+        (await consultasTable.list()).filter((c) => c.propiedad_id === id),
+    },
     ofertas: {
       ...ofertasTable,
       findByContactoId: async (id: string) =>
-        (await ofertasTable.list()).filter((o: any) => o.contacto_id === id),
+        (await ofertasTable.list()).filter((o) => o.contacto_id === id),
       findByPropiedadId: async (id: string) =>
-        (await ofertasTable.list()).filter((o: any) => o.propiedad_id === id),
-    } as any,
+        (await ofertasTable.list()).filter((o) => o.propiedad_id === id),
+    },
     leadsPendientes: {
       ...leadsPendientesTable,
       findByToken: async (token: string) =>
-        (await leadsPendientesTable.list()).find((l: any) => l.token === token) ?? null,
+        (await leadsPendientesTable.list()).find((l) => l.token === token) ?? null,
       marcarUsado: async (id: string) => {
         const item = await leadsPendientesTable.findById(id);
-        if (item) await leadsPendientesTable.update(id, { usado: true } as any);
+        if (item) await leadsPendientesTable.update(id, { usado: true });
       },
-    } as any,
+    },
   };
 }
 

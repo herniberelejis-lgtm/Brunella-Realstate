@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { newDb } from "pg-mem";
+import { newDb, DataType } from "pg-mem";
 import fs from "node:fs";
 import path from "node:path";
 import { createTestPool } from "./testDb";
@@ -8,7 +8,7 @@ function loadTestDb() {
   const db = newDb({ autoCreateForeignKeyIndices: true });
   db.public.registerFunction({
     name: "gen_random_uuid",
-    returns: "uuid" as any,
+    returns: DataType.uuid,
     impure: true, // must generate a fresh value per row, not be cached/simplified
     implementation: () => crypto.randomUUID(),
   });

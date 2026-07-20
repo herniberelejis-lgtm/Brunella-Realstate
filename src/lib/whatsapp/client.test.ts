@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { sendWhatsAppText, sendWhatsAppImage } from "./client";
+import { sendWhatsAppText, sendWhatsAppImage, sendWhatsAppTemplate } from "./client";
 
 describe("WhatsApp Cloud API client", () => {
   beforeEach(() => {
@@ -28,6 +28,23 @@ describe("WhatsApp Cloud API client", () => {
     expect(body.type).toBe("image");
     expect(body.image.link).toBe("https://example.com/foto.jpg");
     expect(body.image.caption).toBe("Depto en Nueva Córdoba");
+  });
+
+  it("sends a template message with body parameters", async () => {
+    await sendWhatsAppTemplate("5493511234567", "seguimiento_migracion", "es_AR", ["Juan"]);
+    const call = (fetch as any).mock.calls[0];
+    const body = JSON.parse(call[1].body);
+    expect(body.type).toBe("template");
+    expect(body.template.name).toBe("seguimiento_migracion");
+    expect(body.template.language.code).toBe("es_AR");
+    expect(body.template.components[0].parameters[0].text).toBe("Juan");
+  });
+
+  it("omits components when the template has no body parameters", async () => {
+    await sendWhatsAppTemplate("5493511234567", "hola_simple", "es_AR", []);
+    const call = (fetch as any).mock.calls[0];
+    const body = JSON.parse(call[1].body);
+    expect(body.template.components).toBeUndefined();
   });
 
   it("throws when the Graph API call fails", async () => {

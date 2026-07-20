@@ -3,8 +3,10 @@
 import { redirect } from "next/navigation";
 import { getDomainModules } from "@/lib/domain/factory";
 import { parseContactoUpdate } from "@/lib/view/contactoForm";
+import { requireDashboardAuth } from "@/lib/security/dashboardAuth";
 
 export async function updateContactoAction(id: string, formData: FormData): Promise<void> {
+  await requireDashboardAuth();
   const result = parseContactoUpdate(formData);
   if (!result.success) {
     // Form fields are constrained to valid values (selects, required text), so a real user

@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { getDomainModules } from "@/lib/domain/factory";
 import { parseImagenes } from "@/lib/view/imagenes";
 import { PhotoIcon } from "@/components/icons/PhotoIcon";
 import type { PropiedadConTotales } from "@/lib/domain/propiedades";
 
 export default async function PropiedadesPage() {
+  // Sin esto la página se prerenderiza estática en el build y el listado queda
+  // congelado con el snapshot de la base del momento del deploy.
+  await connection();
   const { propiedades } = getDomainModules();
   const todas = await propiedades.list();
   const conTotales = await Promise.all(todas.map((p) => propiedades.withTotales(p)));

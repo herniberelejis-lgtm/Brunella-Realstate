@@ -14,6 +14,7 @@ function contacto(nombre: string): Contacto {
     etapa: "Buscando",
     temperatura: "Tibio",
     ultima_actividad: "2026-01-01",
+    whatsapp_confirmado: false,
     created_at: "2026-01-01",
   };
 }

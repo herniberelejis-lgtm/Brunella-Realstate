@@ -6,6 +6,7 @@ vi.mock("@/lib/telegram/client", () => ({
   getFileDownloadUrl: vi.fn().mockResolvedValue("https://example.com/file.oga"),
   downloadFile: vi.fn().mockResolvedValue(Buffer.from("audio")),
   sendMessage: vi.fn().mockResolvedValue(undefined),
+  answerCallbackQuery: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("@/lib/bot/processVoiceNote", () => ({
   processVoiceNote: vi.fn().mockResolvedValue({ respuesta: "✅ Guardé todo" }),
@@ -163,6 +164,26 @@ describe("POST /api/telegram/webhook", () => {
     const response = await POST(buildRequest({ not: "a telegram update" }, "secret"));
     expect(response.status).toBe(200);
     expect(processVoiceNote).not.toHaveBeenCalled();
+  });
+
+  it("responds with a seguimiento preview (dry-run) on the 'seguimiento' text command", async () => {
+    delete process.env.DATABASE_URL;
+    const response = await POST(
+      buildRequest({ message: { chat: { id: 1 }, text: "seguimiento" } }, "secret")
+    );
+
+    expect(response.status).toBe(200);
+    const [, text] = vi.mocked(sendMessage).mock.calls[0];
+    expect(text).toMatch(/previsualizaci/i);
+  });
+
+  it("ignores the 'seguimiento' command from a non-admin chat", async () => {
+    const response = await POST(
+      buildRequest({ message: { chat: { id: 999 }, text: "seguimiento" } }, "secret")
+    );
+
+    expect(response.status).toBe(200);
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 
   it("approves and sends immediately when the contacto already confirmed WhatsApp", async () => {

@@ -67,6 +67,17 @@ export async function sendMediaGroup(
   }
 }
 
+export async function answerCallbackQuery(callbackQueryId: string): Promise<void> {
+  const response = await fetch(apiUrl("answerCallbackQuery"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id: callbackQueryId }),
+  });
+  if (!response.ok) {
+    throw new Error(`Telegram answerCallbackQuery failed (${response.status})`);
+  }
+}
+
 export function verifyWebhookSecret(headerValue: string | undefined | null): boolean {
   const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
   if (!expected || !headerValue) return false;
